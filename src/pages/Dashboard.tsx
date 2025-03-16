@@ -1,304 +1,263 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from '@/components/ui/chart';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { BarChart, LineChart, PieChart } from '@/components/ui/chart';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Sparkles, Calendar, Clock, CheckCircle, XCircle, DollarSign, Users, TrendingUp } from 'lucide-react';
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  description?: string;
-  icon: React.ReactNode;
-  trend?: number;
-  color?: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, trend, color = 'bg-primary/10' }) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <div className={`p-2 rounded-full ${color}`}>{icon}</div>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{value}</div>
-      {description && <p className="text-xs text-muted-foreground">{description}</p>}
-      {trend !== undefined && (
-        <div className={`flex items-center text-xs mt-1 ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% from last month
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
-
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   const { data, isLoading, error } = useDashboardData();
-  const [revenueView, setRevenueView] = useState<'weekly' | 'monthly'>('monthly');
-  
+  const [date, setDate] = React.useState<Date | undefined>(new Date());
+
+  // Format upcoming bookings for display
+  const upcomingBookings = data?.upcomingBookings?.map(booking => ({
+    ...booking,
+    formattedDate: booking.appointmentTime ? 
+      format(new Date(booking.appointmentTime), 'MMMM d, yyyy h:mm a') : 
+      'Date not available'
+  }));
+
+  // Recent transactions data for display
+  const recentTransactions = data?.recentTransactions?.slice(0, 5);
+
   if (isLoading) {
     return (
-      <div className="container-custom py-10">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="container-custom section-padding flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
-  
-  if (error || !data) {
+
+  if (error) {
     return (
-      <div className="container-custom py-10">
+      <div className="container-custom section-padding">
+        <div className="bg-red-50 p-4 rounded-md">
+          <h2 className="text-lg font-medium text-red-800">Unable to load dashboard</h2>
+          <p className="text-red-700 mt-1">
+            {error instanceof Error ? error.message : 'An error occurred'}
+          </p>
+          <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-custom py-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Here's an overview of your skincare journey.</p>
+        </div>
+        
+        <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-4">
+          <Button>
+            Book New Treatment
+          </Button>
+          <Button variant="outline">
+            View Recommendations
+          </Button>
+        </div>
+      </div>
+      
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center h-64">
-            <h2 className="text-xl font-semibold text-red-500">Error Loading Dashboard</h2>
-            <p className="text-muted-foreground mt-2">
-              {error || 'Unable to load dashboard data. Please try again later.'}
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data?.stats?.totalBookings || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              +{data?.stats?.newBookings || 0} this month
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Completed Treatments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data?.stats?.completedTreatments || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data?.stats?.completionRate || 0}% completion rate
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Loyalty Points</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data?.stats?.loyaltyPoints || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data?.stats?.pointsToNextReward || 0} until next reward
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${data?.stats?.totalSpent?.toFixed(2) || "0.00"}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Over {data?.stats?.totalServices || 0} services
             </p>
           </CardContent>
         </Card>
       </div>
-    );
-  }
-  
-  // Format data for charts
-  const revenueData = data.monthlyRevenue.map(item => ({
-    name: item.month,
-    revenue: item.revenue,
-  }));
-  
-  const bookingStatusData = [
-    { name: 'Booked', value: data.bookingsCount.booked },
-    { name: 'Completed', value: data.bookingsCount.completed },
-    { name: 'Cancelled', value: data.bookingsCount.cancelled },
-  ];
-  
-  const serviceRevenueData = data.revenueByService.map(item => ({
-    name: item.serviceName.length > 15 ? `${item.serviceName.substring(0, 15)}...` : item.serviceName,
-    revenue: item.revenue,
-  }));
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
-  
-  return (
-    <div className="container-custom py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="text-sm text-muted-foreground">
-          {format(new Date(), 'MMMM d, yyyy')}
-        </div>
-      </div>
       
-      {/* Stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard 
-          title="Total Revenue" 
-          value={formatCurrency(data.totalRevenue)}
-          icon={<DollarSign className="h-4 w-4 text-primary" />}
-          trend={8.2}
-        />
-        <StatCard 
-          title="Bookings" 
-          value={data.bookingsCount.total}
-          description={`${data.bookingsCount.booked} upcoming`}
-          icon={<Calendar className="h-4 w-4 text-indigo-500" />}
-          color="bg-indigo-100"
-          trend={12.5}
-        />
-        <StatCard 
-          title="Completion Rate" 
-          value={`${Math.round((data.bookingsCount.completed / (data.bookingsCount.total - data.bookingsCount.booked)) * 100)}%`}
-          icon={<CheckCircle className="h-4 w-4 text-green-500" />}
-          color="bg-green-100"
-          trend={1.8}
-        />
-        <StatCard 
-          title="Average Service" 
-          value={formatCurrency(data.totalRevenue / data.bookingsCount.completed)}
-          icon={<Sparkles className="h-4 w-4 text-purple-500" />}
-          color="bg-purple-100"
-          trend={-2.3}
-        />
-      </div>
+      {/* Charts Section */}
+      <Tabs defaultValue="overview" className="mb-8">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="treatments">Treatments</TabsTrigger>
+          <TabsTrigger value="spending">Spending</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Treatment History</CardTitle>
+              <CardDescription>Your skincare journey over time</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <LineChart 
+                data={data?.charts?.treatmentHistory || []} 
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="treatments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Treatment Types</CardTitle>
+              <CardDescription>Breakdown of your treatment types</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <BarChart 
+                data={data?.charts?.treatmentTypes || []}
+                layout="vertical"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="spending" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Spending</CardTitle>
+              <CardDescription>Your spending over the past months</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <BarChart 
+                data={data?.charts?.monthlySpending || []}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       
-      {/* Revenue Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      {/* Bookings and Calendar Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Revenue Overview</CardTitle>
-              <Tabs defaultValue="monthly" onValueChange={(v) => setRevenueView(v as 'weekly' | 'monthly')}>
-                <TabsList className="grid w-[200px] grid-cols-2">
-                  <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                  <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <CardDescription>
-              {revenueView === 'monthly' ? 'Monthly revenue for the past year' : 'Weekly revenue for the past quarter'}
-            </CardDescription>
+            <CardTitle>Upcoming Appointments</CardTitle>
+            <CardDescription>Your scheduled skincare treatments</CardDescription>
           </CardHeader>
-          <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueData}>
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip
-                  formatter={(value: any) => formatCurrency(value)}
-                  labelFormatter={(label) => `${label}`}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2} 
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <CardContent>
+            {upcomingBookings && upcomingBookings.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingBookings.map((booking, index) => (
+                  <div key={booking.id} className="flex items-start justify-between pb-4">
+                    <div>
+                      <h4 className="font-medium">{booking.serviceName}</h4>
+                      <p className="text-sm text-muted-foreground">{booking.formattedDate}</p>
+                      <p className="text-sm">With {booking.therapistName}</p>
+                    </div>
+                    <Button variant="outline" size="sm">Details</Button>
+                    {index < upcomingBookings.length - 1 && <Separator className="mt-4" />}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No upcoming appointments</p>
+                <Button className="mt-4">Book a Treatment</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle>Booking Status</CardTitle>
-            <CardDescription>
-              Breakdown of current bookings by status
-            </CardDescription>
+            <CardTitle>Calendar</CardTitle>
+            <CardDescription>View your schedule</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={bookingStatusData} layout="vertical">
-                <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false}
-                  width={80}
-                />
-                <Tooltip
-                  formatter={(value: any) => [`${value} bookings`, ""]}
-                  labelFormatter={(label) => `Status: ${label}`}
-                />
-                <Bar 
-                  dataKey="value" 
-                  radius={[4, 4, 0, 0]}
-                  barSize={20}
-                >
-                  {bookingStatusData.map((entry, index) => {
-                    const colors = ["hsl(var(--primary))", "#10b981", "#f43f5e"];
-                    return <rect key={`rect-${index}`} fill={colors[index % colors.length]} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="rounded-md border"
+            />
           </CardContent>
         </Card>
       </div>
       
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Service Revenue */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue by Service</CardTitle>
-            <CardDescription>
-              Top services by revenue generation
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={serviceRevenueData}>
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip
-                  formatter={(value: any) => formatCurrency(value)}
-                  labelFormatter={(label) => `Service: ${label}`}
-                />
-                <Bar 
-                  dataKey="revenue" 
-                  fill="hsl(var(--primary))" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        
-        {/* Recent Bookings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Bookings</CardTitle>
-            <CardDescription>
-              Latest booking activity in the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      {/* Recent Transactions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>Your recent payments and refunds</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentTransactions && recentTransactions.length > 0 ? (
             <div className="space-y-4">
-              {data.recentBookings.slice(0, 5).map((booking) => (
-                <div key={booking.id} className="flex items-center border-b pb-2">
-                  <div className={`p-2 rounded-full mr-4 ${
-                    booking.status === "COMPLETED" ? "bg-green-100" : 
-                    booking.status === "CANCELLED" ? "bg-red-100" : "bg-blue-100"
-                  }`}>
-                    {booking.status === "COMPLETED" ? <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                     booking.status === "CANCELLED" ? <XCircle className="h-4 w-4 text-red-500" /> : 
-                     <Clock className="h-4 w-4 text-blue-500" />}
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between pb-4">
+                  <div className="flex items-start">
+                    <div className={`w-2 h-2 rounded-full mt-2 mr-2 ${transaction.type === 'payment' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div>
+                      <h4 className="font-medium">{transaction.description}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {transaction.date ? format(new Date(transaction.date), 'MMM d, yyyy') : 'Date unavailable'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Service #{booking.serviceId}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(booking.appointmentTime), 'MMM d, yyyy, h:mm a')}
-                    </p>
-                  </div>
-                  <div className="font-medium">
-                    {formatCurrency(booking.amount)}
-                  </div>
+                  <span className={`font-medium ${transaction.type === 'payment' ? 'text-red-500' : 'text-green-500'}`}>
+                    {transaction.type === 'payment' ? '-' : '+'} ${transaction.amount.toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <p className="text-center py-4 text-muted-foreground">No recent transactions</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

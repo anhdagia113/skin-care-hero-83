@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 const API_BASE_URL = "http://localhost:8080/api";
@@ -160,3 +159,110 @@ export async function deleteData<T>(endpoint: string, data?: any): Promise<ApiRe
     return { data: null, error: errorMessage, status: 0 };
   }
 }
+
+/**
+ * Creates a new booking
+ */
+export const createBooking = async (bookingData: any) => {
+  try {
+    // Simulated API response for now
+    console.log('Creating booking:', bookingData);
+    return {
+      success: true,
+      data: {
+        id: Math.floor(Math.random() * 1000),
+        ...bookingData,
+        createdAt: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create booking'
+    };
+  }
+};
+
+/**
+ * Submits a skin test assessment
+ */
+export const submitSkinTest = async (skinTestData: any) => {
+  try {
+    // Simulated API response for now
+    console.log('Submitting skin test:', skinTestData);
+    
+    // Simulate recommendations based on skin type and concerns
+    const recommendations = generateRecommendations(skinTestData);
+    
+    return {
+      success: true,
+      data: {
+        id: Math.floor(Math.random() * 1000),
+        ...skinTestData,
+        recommendations,
+        createdAt: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error('Error submitting skin test:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to submit skin test'
+    };
+  }
+};
+
+/**
+ * Helper function to generate skin care recommendations based on skin test data
+ */
+const generateRecommendations = (skinTestData: any) => {
+  const { skinType, concerns, sensitivity } = skinTestData;
+  
+  // Basic recommendations based on skin type
+  const recommendations = {
+    services: [],
+    products: [],
+    routine: ''
+  };
+  
+  // Add service recommendations based on skin type and concerns
+  if (skinType === 'dry' || concerns.includes('8')) {
+    recommendations.services.push({
+      id: 1,
+      name: 'Hydrating Facial',
+      description: 'Deep hydration treatment for dry skin'
+    });
+  }
+  
+  if (skinType === 'oily' || concerns.includes('1') || concerns.includes('7')) {
+    recommendations.services.push({
+      id: 2,
+      name: 'Purifying Facial',
+      description: 'Balancing treatment for oily and acne-prone skin'
+    });
+  }
+  
+  if (concerns.includes('2') || concerns.includes('3')) {
+    recommendations.services.push({
+      id: 3,
+      name: 'Anti-Aging Facial',
+      description: 'Targets fine lines, wrinkles, and hyperpigmentation'
+    });
+  }
+  
+  if (sensitivity === 'high') {
+    recommendations.services.push({
+      id: 4,
+      name: 'Sensitive Skin Facial',
+      description: 'Gentle treatment for sensitive skin'
+    });
+    recommendations.routine = 'Use gentle, fragrance-free products. Patch test new products. Focus on barrier repair.';
+  } else if (skinType === 'combination') {
+    recommendations.routine = 'Use different products for different areas of your face. Balance hydration without over-oiling.';
+  } else if (skinType === 'normal') {
+    recommendations.routine = 'Maintain skin health with consistent cleansing, hydration, and sun protection.';
+  }
+  
+  return recommendations;
+};
