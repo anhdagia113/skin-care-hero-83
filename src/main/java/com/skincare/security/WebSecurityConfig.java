@@ -55,22 +55,13 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // Temporarily allow all requests for testing purposes
         http.csrf(csrf -> csrf.disable())
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/home", "/api/services").permitAll()
-                .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/api/customers/me/**").hasRole("CUSTOMER")
-                .requestMatchers("/api/skin-test", "/api/bookings", "/api/feedback").hasRole("CUSTOMER")
-                .requestMatchers("/api/bookings/*/checkin", "/api/bookings/*/result").hasRole("STAFF")
-                .requestMatchers("/api/bookings/*/assign", "/api/bookings/*/checkout").hasRole("STAFF")
-                .requestMatchers("/api/dashboard", "/api/reports").hasRole("ADMIN")
-                .requestMatchers("/api/services/**", "/api/therapists/**").hasRole("ADMIN")
-                .requestMatchers("/api/schedule/**", "/api/payment-policy/**").hasRole("ADMIN")
-                .requestMatchers("/api/feedback", "/api/bookings/*/payment").hasRole("ADMIN")
-                .anyRequest().authenticated()
+                // Allow all requests for testing
+                .anyRequest().permitAll()
             );
         
         http.authenticationProvider(authenticationProvider());

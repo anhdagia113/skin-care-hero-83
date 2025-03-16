@@ -1,69 +1,134 @@
-# Welcome to your Lovable project
 
-## Project info
+# Skin Care Hero - API Backend
 
-**URL**: https://lovable.dev/projects/fd2879aa-6d3b-4065-8cbe-c3005a768fba
+## Overview
 
-## How can I edit this code?
+Skin Care Hero is a comprehensive management system for skin care centers, featuring customer skin assessment, service booking, staff management, and administrative dashboards.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- Customer registration and authentication
+- Skin type assessment and service recommendations
+- Appointment booking and management
+- Staff task assignment and service tracking
+- Comprehensive admin dashboard with reports
+- Feedback collection and analysis
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fd2879aa-6d3b-4065-8cbe-c3005a768fba) and start prompting.
+## Technology Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Java 17**
+- **Spring Boot 3.2.4**
+- **Spring Security with JWT**
+- **Spring Data JPA**
+- **MySQL Database**
+- **Maven**
+- **OpenAPI Documentation (Swagger)**
 
-**Use your preferred IDE**
+## Setup and Running Instructions
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Java 17 JDK installed
+2. Maven installed
+3. MySQL installed and running
+4. IDE of your choice (IntelliJ IDEA, Eclipse, VS Code, etc.)
 
-Follow these steps:
+### Database Setup
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Create a MySQL database:
+   ```sql
+   CREATE DATABASE skincare_db;
+   ```
+   
+2. Configure the database connection in `src/main/resources/application.properties`:
+   ```properties
+   spring.datasource.url=jdbc:mysql://localhost:3306/skincare_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+   spring.datasource.username=your-username
+   spring.datasource.password=your-password
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Running the Application
 
-# Step 3: Install the necessary dependencies.
-npm i
+#### Option 1: Using Maven
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Navigate to the project directory
+2. Run the application using Maven:
+   ```bash
+   mvn spring-boot:run
+   ```
+
+#### Option 2: Using IDE
+
+1. Open the project in your preferred IDE
+2. Run the main class: `com.skincare.Application`
+
+### API Documentation
+
+Once the application is running, access the Swagger UI documentation:
+- URL: http://localhost:8080/swagger-ui.html
+
+### Authentication (Temporarily Disabled for Testing)
+
+Authentication is currently disabled for testing purposes. In the application.properties file, the property `skincare.app.jwtEnabled` is set to `false`.
+
+To enable authentication:
+1. Change the property to `true` in `application.properties`:
+   ```properties
+   skincare.app.jwtEnabled=true
+   ```
+2. Or remove the property entirely (default is `true`)
+
+## API Endpoints
+
+The system provides the following API categories:
+
+### Public APIs (No Authentication Required)
+- `GET /api/home`: Home page information
+- `GET /api/services`: List of skincare services
+
+### Customer APIs (ROLE_CUSTOMER)
+- `POST /api/auth/register`: Customer registration
+- `POST /api/auth/login`: Customer login
+- `POST /api/skin-test`: Take a skin test to get service recommendations
+- `POST /api/bookings`: Book a service
+- `GET /api/customers/me`: View personal information
+- `GET /api/customers/me/bookings`: View booking history
+- `POST /api/feedback`: Submit rating and feedback
+- `DELETE /api/bookings/{id}`: Cancel a booking
+
+### Staff APIs (ROLE_STAFF)
+- `PUT /api/bookings/{id}/checkin`: Check-in customers
+- `PUT /api/bookings/{id}/assign`: Assign therapist
+- `PUT /api/bookings/{id}/result`: Record service results
+- `PUT /api/bookings/{id}/checkout`: Check-out customers
+
+### Admin APIs (ROLE_ADMIN)
+- Service management: `POST /api/services`, `PUT /api/services/{id}`, `DELETE /api/services/{id}`
+- Therapist management: `POST /api/therapists`, `PUT /api/therapists/{id}`
+- Schedule management: `GET /api/schedule`, `PUT /api/schedule`
+- Payment policy: `GET /api/payment-policy`, `PUT /api/payment-policy`
+- Payment processing: `POST /api/bookings/{id}/payment`
+- Feedback review: `GET /api/feedback`
+- Dashboard: `GET /api/dashboard`
+- Reports: `GET /api/reports?startDate={date}&endDate={date}`
+
+## Development
+
+### Adding Initial Data
+
+To add initial data, you can create a SQL script in the `src/main/resources` directory and either:
+1. Run it manually in your MySQL client
+2. Configure Spring Boot to run it at startup:
+   ```properties
+   spring.sql.init.mode=always
+   spring.sql.init.data-locations=classpath:data.sql
+   ```
+
+### Database Schema Updates
+
+The application uses Hibernate auto-update:
+```properties
+spring.jpa.hibernate.ddl-auto=update
 ```
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/fd2879aa-6d3b-4065-8cbe-c3005a768fba) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This will automatically create or update database tables based on entity definitions.

@@ -26,6 +26,9 @@ public class JwtUtils {
 
     @Value("${skincare.app.jwtExpirationMs}")
     private int jwtExpirationMs;
+    
+    @Value("${skincare.app.jwtEnabled:true}")
+    private boolean jwtEnabled;
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
@@ -48,6 +51,11 @@ public class JwtUtils {
     }
 
     public boolean validateJwtToken(String authToken) {
+        // If JWT validation is disabled, return true always
+        if (!jwtEnabled) {
+            return true;
+        }
+        
         try {
             Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
             return true;
