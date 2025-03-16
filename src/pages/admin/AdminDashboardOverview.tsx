@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -176,129 +175,137 @@ const AdminDashboardOverview = () => {
         </Card>
       </div>
 
-      <TabsContent value="overview" className="mt-6 space-y-6" forceMount={activeTab === "overview"}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <TabsContent value="overview" className="mt-6 space-y-6">
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by Service</CardTitle>
+                <CardDescription>Top performing services by revenue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BarChart 
+                  data={revenueByService}
+                  index="name"
+                  categories={["value"]}
+                  colors={["purple"]}
+                  valueFormatter={(value) => `$${value}`}
+                  className="h-[300px]"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Therapist Performance</CardTitle>
+                <CardDescription>Bookings and ratings by therapist</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BarChart 
+                  data={therapistPerformance}
+                  index="name"
+                  categories={["bookings", "rating"]}
+                  colors={["purple", "pink"]}
+                  valueFormatter={(value) => `${value}`}
+                  className="h-[300px]"
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "overview" && (
           <Card>
             <CardHeader>
-              <CardTitle>Revenue by Service</CardTitle>
-              <CardDescription>Top performing services by revenue</CardDescription>
+              <CardTitle>Recent Bookings</CardTitle>
+              <CardDescription>Latest appointment activities</CardDescription>
             </CardHeader>
             <CardContent>
-              <BarChart 
-                data={revenueByService}
-                index="name"
-                categories={["value"]}
+              <div className="space-y-4">
+                {dashboardData?.recentBookings.length > 0 ? (
+                  dashboardData.recentBookings.map((booking) => (
+                    <div key={booking.id} className="flex items-center border-b pb-4 last:border-0 last:pb-0">
+                      <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                        <Users className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          Customer #{booking.customerId} - Service #{booking.serviceId}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(booking.appointmentTime), "PPP p")} - {booking.status}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${booking.amount}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {booking.isPaid ? "Paid" : "Unpaid"}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">No recent bookings</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+
+      <TabsContent value="bookings" className="mt-6 space-y-6">
+        {activeTab === "bookings" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Booking Status Distribution</CardTitle>
+              <CardDescription>Current status of all bookings</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <div className="w-full max-w-md">
+                <PieChart
+                  data={[
+                    { name: "Booked", value: dashboardData?.bookingsCount.booked || 0 },
+                    { name: "Completed", value: dashboardData?.bookingsCount.completed || 0 },
+                    { name: "Cancelled", value: dashboardData?.bookingsCount.cancelled || 0 },
+                  ]}
+                  index="name"
+                  category="value"
+                  valueFormatter={(value) => `${value} bookings`}
+                  colors={["purple", "green", "red"]}
+                  className="h-[300px]"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+
+      <TabsContent value="revenue" className="mt-6 space-y-6">
+        {activeTab === "revenue" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Revenue</CardTitle>
+              <CardDescription>Revenue trends over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LineChart
+                data={[
+                  { month: "Jan", revenue: 4200 },
+                  { month: "Feb", revenue: 4800 },
+                  { month: "Mar", revenue: 5100 },
+                  { month: "Apr", revenue: 5600 },
+                  { month: "May", revenue: 5900 },
+                  { month: "Jun", revenue: 6100 },
+                ]}
+                index="month"
+                categories={["revenue"]}
                 colors={["purple"]}
                 valueFormatter={(value) => `$${value}`}
                 className="h-[300px]"
               />
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Therapist Performance</CardTitle>
-              <CardDescription>Bookings and ratings by therapist</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BarChart 
-                data={therapistPerformance}
-                index="name"
-                categories={["bookings", "rating"]}
-                colors={["purple", "pink"]}
-                valueFormatter={(value) => `${value}`}
-                className="h-[300px]"
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Bookings</CardTitle>
-            <CardDescription>Latest appointment activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {dashboardData.recentBookings.length > 0 ? (
-                dashboardData.recentBookings.map((booking) => (
-                  <div key={booking.id} className="flex items-center border-b pb-4 last:border-0 last:pb-0">
-                    <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                      <Users className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        Customer #{booking.customerId} - Service #{booking.serviceId}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(booking.appointmentTime), "PPP p")} - {booking.status}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">${booking.amount}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {booking.isPaid ? "Paid" : "Unpaid"}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center py-4 text-muted-foreground">No recent bookings</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="bookings" className="mt-6 space-y-6" forceMount={activeTab === "bookings"}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking Status Distribution</CardTitle>
-            <CardDescription>Current status of all bookings</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <div className="w-full max-w-md">
-              <PieChart
-                data={[
-                  { name: "Booked", value: dashboardData.bookingsCount.booked },
-                  { name: "Completed", value: dashboardData.bookingsCount.completed },
-                  { name: "Cancelled", value: dashboardData.bookingsCount.cancelled },
-                ]}
-                index="name"
-                category="value"
-                valueFormatter={(value) => `${value} bookings`}
-                colors={["purple", "green", "red"]}
-                className="h-[300px]"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="revenue" className="mt-6 space-y-6" forceMount={activeTab === "revenue"}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Revenue</CardTitle>
-            <CardDescription>Revenue trends over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LineChart
-              data={[
-                { month: "Jan", revenue: 4200 },
-                { month: "Feb", revenue: 4800 },
-                { month: "Mar", revenue: 5100 },
-                { month: "Apr", revenue: 5600 },
-                { month: "May", revenue: 5900 },
-                { month: "Jun", revenue: 6100 },
-              ]}
-              index="month"
-              categories={["revenue"]}
-              colors={["purple"]}
-              valueFormatter={(value) => `$${value}`}
-              className="h-[300px]"
-            />
-          </CardContent>
-        </Card>
+        )}
       </TabsContent>
     </div>
   );

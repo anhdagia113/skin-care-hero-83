@@ -24,6 +24,16 @@ export const getUserId = () => localStorage.getItem('user_id');
 export const setUserId = (id: string) => localStorage.setItem('user_id', id);
 export const removeUserId = () => localStorage.removeItem('user_id');
 
+// Check if user is authenticated
+export const isAuthenticated = () => !!getToken();
+
+// Clear all auth data
+export const clearAuthData = () => {
+  removeToken();
+  removeUserRole();
+  removeUserId();
+};
+
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const status = response.status;
   
@@ -41,9 +51,7 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     
     if (status === 401) {
       // Handle unauthorized access
-      removeToken();
-      removeUserRole();
-      removeUserId();
+      clearAuthData();
       window.location.href = '/login';
     }
     
@@ -68,6 +76,7 @@ export async function fetchData<T>(endpoint: string): Promise<ApiResponse<T>> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Network error";
     toast.error(errorMessage);
+    console.error("API Error:", errorMessage);
     return { data: null, error: errorMessage, status: 0 };
   }
 }
@@ -92,6 +101,7 @@ export async function postData<T>(endpoint: string, data: any): Promise<ApiRespo
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Network error";
     toast.error(errorMessage);
+    console.error("API Error:", errorMessage);
     return { data: null, error: errorMessage, status: 0 };
   }
 }
@@ -116,6 +126,7 @@ export async function putData<T>(endpoint: string, data: any): Promise<ApiRespon
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Network error";
     toast.error(errorMessage);
+    console.error("API Error:", errorMessage);
     return { data: null, error: errorMessage, status: 0 };
   }
 }
@@ -145,6 +156,7 @@ export async function deleteData<T>(endpoint: string, data?: any): Promise<ApiRe
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Network error";
     toast.error(errorMessage);
+    console.error("API Error:", errorMessage);
     return { data: null, error: errorMessage, status: 0 };
   }
 }

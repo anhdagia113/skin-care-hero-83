@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
   Calendar, 
-  ClockRewind, 
+  History, 
   CreditCard, 
   Settings, 
   User, 
@@ -23,7 +22,7 @@ const UserDashboardLayout = () => {
   const navItems = [
     { path: "/dashboard", label: "Overview", icon: <LayoutDashboard className="h-5 w-5" /> },
     { path: "/dashboard/bookings", label: "My Bookings", icon: <Calendar className="h-5 w-5" /> },
-    { path: "/dashboard/history", label: "Booking History", icon: <ClockRewind className="h-5 w-5" /> },
+    { path: "/dashboard/history", label: "Booking History", icon: <History className="h-5 w-5" /> },
     { path: "/dashboard/payments", label: "Payment Info", icon: <CreditCard className="h-5 w-5" /> },
     { path: "/dashboard/profile", label: "Profile", icon: <User className="h-5 w-5" /> },
     { path: "/dashboard/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },

@@ -1,106 +1,122 @@
 
-// Service types
+// User and Authentication
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  roles: string[];
+}
+
+// Customer
+export interface Customer {
+  id: number;
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  address?: string;
+  birthDate?: string;
+  skinType?: string;
+  skinConcerns?: string;
+  allergies?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Therapist
+export interface Therapist {
+  id: number;
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  specialization: string;
+  experience: number;
+  bio: string;
+  rating: number;
+  availability: string[];
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Service
 export interface Service {
   id: number;
   name: string;
   description: string;
+  duration: number;
   price: number;
-  durationMinutes: number;
+  category: string;
+  imageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Therapist types
-export interface Therapist {
-  id: number;
-  firstName: string;
-  lastName: string;
-  bio: string;
-  specialization: string;
-  email: string;
-  phoneNumber: string;
-  photoUrl: string;
-  workSchedule: string;
-  serviceIds: number[];
-}
-
-// Customer types
-export interface Customer {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
-  skinConcerns: string;
-  skinType: string;
-  allergies: string;
-}
-
-// Booking types
+// Booking
 export interface Booking {
   id: number;
   customerId: number;
   serviceId: number;
   therapistId?: number;
   appointmentTime: string;
-  status: 'BOOKED' | 'CHECKED_IN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  checkinTime?: string;
-  checkoutTime?: string;
-  serviceResults?: string;
+  duration: number;
+  status: "BOOKED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
   amount: number;
   isPaid: boolean;
-  paymentTime?: string;
-  paymentMethod?: 'CASH' | 'CREDIT_CARD' | 'BANK_TRANSFER' | 'ONLINE';
-  cancellationReason?: string;
+  paymentMethod?: string;
+  notes?: string;
+  serviceResults?: string;
+  cancelReason?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Feedback types
+// Feedback
 export interface Feedback {
   id: number;
-  bookingId: number;
+  customerId: number;
+  therapistId?: number;
+  serviceId?: number;
+  bookingId?: number;
   rating: number;
   comment: string;
-  isPublic: boolean;
+  createdAt: string;
 }
 
-// Skin Test types
+// Skin Test
 export interface SkinTest {
-  id?: number;
-  customerId?: number;
-  skinType?: string;
-  skinConcerns?: string;
-  oiliness?: number;
-  sensitivity?: number;
-  hydration?: number;
-  pigmentation?: number;
-  wrinkles?: number;
-  additionalNotes?: string;
+  skinType: string;
+  concerns: string[];
+  sensitivity: string;
+  allergies?: string;
+  previousTreatments?: string;
 }
 
-// Home page data
+// Home Page Data
 export interface HomePageData {
-  introduction: {
+  banners: {
+    id: number;
     title: string;
     description: string;
     imageUrl: string;
+    linkUrl?: string;
+  }[];
+  featuredServices: Service[];
+  topTherapists: Therapist[];
+  testimonials: Feedback[];
+  statistics: {
+    customersServed: number;
+    servicesOffered: number;
+    experienceYears: number;
+    satisfactionRate: number;
   };
-  services: Service[];
-  therapists: Therapist[];
-  blogs: {
-    id: number;
-    title: string;
-    summary: string;
-    imageUrl: string;
-    publishDate: string;
-  }[];
-  news: {
-    id: number;
-    title: string;
-    summary: string;
-    publishDate: string;
-  }[];
 }
 
-// Dashboard data
+// Dashboard Data
 export interface DashboardData {
   totalRevenue: number;
   bookingsCount: {
@@ -110,13 +126,58 @@ export interface DashboardData {
     cancelled: number;
   };
   revenueByService: {
+    serviceId: number;
     serviceName: string;
     revenue: number;
+    bookingsCount: number;
   }[];
   topTherapists: {
+    therapistId: number;
     therapistName: string;
     bookingsCount: number;
     averageRating: number;
   }[];
   recentBookings: Booking[];
+  monthlyRevenue: {
+    month: string;
+    revenue: number;
+  }[];
+}
+
+// Form Types
+export interface RegisterData {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+}
+
+export interface ProfileUpdateData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
+  birthDate?: string;
+  skinType?: string;
+  skinConcerns?: string;
+  allergies?: string;
+}
+
+export interface BookingFormData {
+  serviceId: number;
+  therapistId?: number;
+  appointmentDate: Date;
+  appointmentTime: string;
+  notes?: string;
+}
+
+export interface PaymentData {
+  paymentMethod: string;
+  cardNumber?: string;
+  cardExpiry?: string;
+  cardCvc?: string;
+  billingAddress?: string;
 }
