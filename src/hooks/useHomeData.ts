@@ -17,9 +17,11 @@ export function useHomeData() {
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error) => {
-      console.error("Failed to fetch home data:", error);
-      toast.error("Unable to load home page data. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Failed to fetch home data:", error);
+        toast.error("Unable to load home page data. Please try again later.");
+      }
     }
   });
 }

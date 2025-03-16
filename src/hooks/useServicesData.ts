@@ -17,9 +17,11 @@ export function useServicesData() {
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error) => {
-      console.error("Failed to fetch services data:", error);
-      toast.error("Unable to load services. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Failed to fetch services data:", error);
+        toast.error("Unable to load services. Please try again later.");
+      }
     }
   });
 }

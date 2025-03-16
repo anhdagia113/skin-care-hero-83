@@ -17,9 +17,11 @@ export function useCustomerData(customerId: number) {
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error) => {
-      console.error("Failed to fetch customer data:", error);
-      toast.error("Unable to load customer information. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Failed to fetch customer data:", error);
+        toast.error("Unable to load customer information. Please try again later.");
+      }
     },
     enabled: !!customerId
   });
@@ -38,9 +40,11 @@ export function useCustomerBookings(customerId: number) {
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error) => {
-      console.error("Failed to fetch customer bookings:", error);
-      toast.error("Unable to load booking history. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Failed to fetch customer bookings:", error);
+        toast.error("Unable to load booking history. Please try again later.");
+      }
     },
     enabled: !!customerId
   });

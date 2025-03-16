@@ -17,9 +17,11 @@ export function useFeedbackData() {
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error) => {
-      console.error("Failed to fetch feedback data:", error);
-      toast.error("Unable to load feedback. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Failed to fetch feedback data:", error);
+        toast.error("Unable to load feedback. Please try again later.");
+      }
     }
   });
 }
