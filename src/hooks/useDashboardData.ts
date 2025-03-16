@@ -1,25 +1,25 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchData } from "@/api/api-client";
-import { Therapist } from "@/types";
+import { DashboardData } from "@/types";
 import { toast } from "sonner";
 
-export function useTherapistsData() {
+export function useDashboardData() {
   return useQuery({
-    queryKey: ["therapistsData"],
+    queryKey: ["dashboardData"],
     queryFn: async () => {
-      const response = await fetchData<Therapist[]>("/therapists");
+      const response = await fetchData<DashboardData>("/dashboard");
       if (response.error) {
         throw new Error(response.error);
       }
-      return response.data as Therapist[];
+      return response.data as DashboardData;
     },
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     onError: (error) => {
-      console.error("Failed to fetch therapists data:", error);
-      toast.error("Unable to load specialists. Please try again later.");
+      console.error("Failed to fetch dashboard data:", error);
+      toast.error("Unable to load dashboard data. Please try again later.");
     }
   });
 }
