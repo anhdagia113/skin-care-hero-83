@@ -7,12 +7,11 @@ import com.skincare.mapper.ServiceMapper;
 import com.skincare.model.Service;
 import com.skincare.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
+@org.springframework.stereotype.Service
 @RequiredArgsConstructor
 public class ServiceService {
     private final ServiceRepository serviceRepository;
@@ -39,7 +38,7 @@ public class ServiceService {
     public ServiceDto updateService(Long id, ServiceDto serviceDto) {
         Service existingService = serviceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id));
-        
+
         serviceMapper.updateEntityFromDto(serviceDto, existingService);
         Service updatedService = serviceRepository.save(existingService);
         return serviceMapper.toDto(updatedService);

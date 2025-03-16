@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service
+@org.springframework.stereotype.Service
 @RequiredArgsConstructor
 public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
@@ -28,7 +28,7 @@ public class FeedbackService {
     public List<FeedbackDto> getFeedbackByService(Long serviceId) {
         Service service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + serviceId));
-        
+
         List<Feedback> feedbacks = feedbackRepository.findByServiceAndIsPublic(service, true);
         return mapToDtoList(feedbacks);
     }
@@ -36,15 +36,16 @@ public class FeedbackService {
     public List<FeedbackDto> getFeedbackByTherapist(Long therapistId) {
         Therapist therapist = therapistRepository.findById(therapistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Therapist not found with id: " + therapistId));
-        
+
         List<Feedback> feedbacks = feedbackRepository.findByTherapistAndIsPublic(therapist, true);
         return mapToDtoList(feedbacks);
     }
 
     public FeedbackDto createFeedback(FeedbackDto feedbackDto) {
         Booking booking = bookingRepository.findById(feedbackDto.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + feedbackDto.getBookingId()));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Booking not found with id: " + feedbackDto.getBookingId()));
+
         Feedback feedback = new Feedback();
         feedback.setBooking(booking);
         feedback.setCustomer(booking.getCustomer());
@@ -53,7 +54,7 @@ public class FeedbackService {
         feedback.setRating(feedbackDto.getRating());
         feedback.setComment(feedbackDto.getComment());
         feedback.setIsPublic(feedbackDto.getIsPublic() != null ? feedbackDto.getIsPublic() : true);
-        
+
         Feedback savedFeedback = feedbackRepository.save(feedback);
         return mapToDto(savedFeedback);
     }
