@@ -1,5 +1,5 @@
 
-# Skin Care Hero - API Backend
+# Skin Care Hero
 
 ## Overview
 
@@ -14,17 +14,54 @@ Skin Care Hero is a comprehensive management system for skin care centers, featu
 - Comprehensive admin dashboard with reports
 - Feedback collection and analysis
 
-## Technology Stack
+## Frontend Setup and Running Instructions
 
-- **Java 17**
-- **Spring Boot 3.2.4**
-- **Spring Security with JWT**
-- **Spring Data JPA**
-- **MySQL Database**
-- **Maven**
-- **OpenAPI Documentation (Swagger)**
+### Prerequisites
 
-## Setup and Running Instructions
+1. Node.js (version 16 or later)
+2. npm, yarn, or pnpm package manager
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   ```
+
+### Running the Frontend Application
+
+1. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   ```
+2. Open your browser and navigate to `http://localhost:3000` or the URL shown in your terminal
+
+### Demo Login Credentials
+
+You can use the following credentials to test the application:
+
+#### Customer Login
+- **Username**: customer
+- **Password**: password123
+
+#### Staff Login
+- **Username**: staff
+- **Password**: password123
+
+#### Admin Login
+- **Username**: admin
+- **Password**: password123
+
+## Backend Setup (Java Spring Boot)
 
 ### Prerequisites
 
@@ -47,7 +84,7 @@ Skin Care Hero is a comprehensive management system for skin care centers, featu
    spring.datasource.password=your-password
    ```
 
-### Running the Application
+### Running the Backend Application
 
 #### Option 1: Using Maven
 
@@ -62,14 +99,9 @@ Skin Care Hero is a comprehensive management system for skin care centers, featu
 1. Open the project in your preferred IDE
 2. Run the main class: `com.skincare.Application`
 
-### API Documentation
+### Authentication (Temporarily Disabled for Development)
 
-Once the application is running, access the Swagger UI documentation:
-- URL: http://localhost:8080/swagger-ui.html
-
-### Authentication (Temporarily Disabled for Testing)
-
-Authentication is currently disabled for testing purposes. In the application.properties file, the property `skincare.app.jwtEnabled` is set to `false`.
+Authentication is currently disabled for testing purposes. This means you can access all endpoints without authentication during development. In the `application.properties` file, the property `skincare.app.jwtEnabled` is set to `false`.
 
 To enable authentication:
 1. Change the property to `true` in `application.properties`:
@@ -78,57 +110,24 @@ To enable authentication:
    ```
 2. Or remove the property entirely (default is `true`)
 
-## API Endpoints
+## API Documentation
 
-The system provides the following API categories:
+Once the backend application is running, access the Swagger UI documentation:
+- URL: http://localhost:8080/swagger-ui.html
 
-### Public APIs (No Authentication Required)
-- `GET /api/home`: Home page information
-- `GET /api/services`: List of skincare services
+## Project Structure
 
-### Customer APIs (ROLE_CUSTOMER)
-- `POST /api/auth/register`: Customer registration
-- `POST /api/auth/login`: Customer login
-- `POST /api/skin-test`: Take a skin test to get service recommendations
-- `POST /api/bookings`: Book a service
-- `GET /api/customers/me`: View personal information
-- `GET /api/customers/me/bookings`: View booking history
-- `POST /api/feedback`: Submit rating and feedback
-- `DELETE /api/bookings/{id}`: Cancel a booking
+- `src/main/java/com/skincare`: Backend Java code
+- `src/main/resources`: Backend configuration files
+- `src/`: Frontend React code
+  - `src/components`: UI components
+  - `src/pages`: Main application pages
+  - `src/hooks`: Custom React hooks
+  - `src/api`: API client functions
+  - `src/types`: TypeScript type definitions
 
-### Staff APIs (ROLE_STAFF)
-- `PUT /api/bookings/{id}/checkin`: Check-in customers
-- `PUT /api/bookings/{id}/assign`: Assign therapist
-- `PUT /api/bookings/{id}/result`: Record service results
-- `PUT /api/bookings/{id}/checkout`: Check-out customers
+## Development Notes
 
-### Admin APIs (ROLE_ADMIN)
-- Service management: `POST /api/services`, `PUT /api/services/{id}`, `DELETE /api/services/{id}`
-- Therapist management: `POST /api/therapists`, `PUT /api/therapists/{id}`
-- Schedule management: `GET /api/schedule`, `PUT /api/schedule`
-- Payment policy: `GET /api/payment-policy`, `PUT /api/payment-policy`
-- Payment processing: `POST /api/bookings/{id}/payment`
-- Feedback review: `GET /api/feedback`
-- Dashboard: `GET /api/dashboard`
-- Reports: `GET /api/reports?startDate={date}&endDate={date}`
-
-## Development
-
-### Adding Initial Data
-
-To add initial data, you can create a SQL script in the `src/main/resources` directory and either:
-1. Run it manually in your MySQL client
-2. Configure Spring Boot to run it at startup:
-   ```properties
-   spring.sql.init.mode=always
-   spring.sql.init.data-locations=classpath:data.sql
-   ```
-
-### Database Schema Updates
-
-The application uses Hibernate auto-update:
-```properties
-spring.jpa.hibernate.ddl-auto=update
-```
-
-This will automatically create or update database tables based on entity definitions.
+- The application currently uses mock data for development purposes
+- The backend API is designed to be RESTful
+- Frontend is built with React, TypeScript and Tailwind CSS
