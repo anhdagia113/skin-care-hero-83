@@ -26,6 +26,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Booking } from "@/types";
 
 const Dashboard = () => {
   const [userId, setUserId] = useState<number | null>(null);
@@ -301,6 +302,9 @@ const UserDashboard = ({ userId }: { userId: number }) => {
     );
   }
   
+  // Ensure bookings is an array before checking length
+  const bookingsArray = Array.isArray(bookings) ? bookings : [];
+
   return (
     <Tabs defaultValue="upcoming" className="w-full">
       <TabsList className="grid grid-cols-3 mb-8">
@@ -315,7 +319,7 @@ const UserDashboard = ({ userId }: { userId: number }) => {
             <CardTitle className="text-lg font-medium">Your Upcoming Appointments</CardTitle>
           </CardHeader>
           <CardContent>
-            {bookings && bookings.length > 0 ? (
+            {bookingsArray.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -328,27 +332,29 @@ const UserDashboard = ({ userId }: { userId: number }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {bookings.filter((booking: any) => 
-                      new Date(booking.appointmentTime) >= new Date() && 
-                      booking.status !== 'CANCELLED' && 
-                      booking.status !== 'COMPLETED'
-                    ).map((booking: any, index: number) => (
-                      <tr key={index} className="border-b last:border-b-0">
-                        <td className="py-3">Service #{booking.serviceId}</td>
-                        <td className="py-3">{new Date(booking.appointmentTime).toLocaleString()}</td>
-                        <td className="py-3">{booking.therapistId ? `Specialist #${booking.therapistId}` : "Not assigned"}</td>
-                        <td className="py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td className="py-3">
-                          <button className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-full transition">
-                            Reschedule
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {bookingsArray
+                      .filter((booking: Booking) => 
+                        new Date(booking.appointmentTime) >= new Date() && 
+                        booking.status !== 'CANCELLED' && 
+                        booking.status !== 'COMPLETED'
+                      )
+                      .map((booking: Booking, index: number) => (
+                        <tr key={index} className="border-b last:border-b-0">
+                          <td className="py-3">Service #{booking.serviceId}</td>
+                          <td className="py-3">{new Date(booking.appointmentTime).toLocaleString()}</td>
+                          <td className="py-3">{booking.therapistId ? `Specialist #${booking.therapistId}` : "Not assigned"}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
+                              {booking.status}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <button className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-full transition">
+                              Reschedule
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -419,7 +425,7 @@ const UserDashboard = ({ userId }: { userId: number }) => {
             <CardTitle className="text-lg font-medium">Your Booking History</CardTitle>
           </CardHeader>
           <CardContent>
-            {bookings && bookings.length > 0 ? (
+            {bookingsArray.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -433,28 +439,30 @@ const UserDashboard = ({ userId }: { userId: number }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {bookings.filter((booking: any) => 
-                      booking.status === 'COMPLETED' || booking.status === 'CANCELLED'
-                    ).map((booking: any, index: number) => (
-                      <tr key={index} className="border-b last:border-b-0">
-                        <td className="py-3">Service #{booking.serviceId}</td>
-                        <td className="py-3">{new Date(booking.appointmentTime).toLocaleDateString()}</td>
-                        <td className="py-3">{booking.therapistId ? `Specialist #${booking.therapistId}` : "N/A"}</td>
-                        <td className="py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td className="py-3">${booking.amount}</td>
-                        <td className="py-3">
-                          {booking.status === 'COMPLETED' && (
-                            <button className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded-full transition">
-                              Leave Review
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {bookingsArray
+                      .filter((booking: Booking) => 
+                        booking.status === 'COMPLETED' || booking.status === 'CANCELLED'
+                      )
+                      .map((booking: Booking, index: number) => (
+                        <tr key={index} className="border-b last:border-b-0">
+                          <td className="py-3">Service #{booking.serviceId}</td>
+                          <td className="py-3">{new Date(booking.appointmentTime).toLocaleDateString()}</td>
+                          <td className="py-3">{booking.therapistId ? `Specialist #${booking.therapistId}` : "N/A"}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
+                              {booking.status}
+                            </span>
+                          </td>
+                          <td className="py-3">${booking.amount}</td>
+                          <td className="py-3">
+                            {booking.status === 'COMPLETED' && (
+                              <button className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded-full transition">
+                                Leave Review
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>

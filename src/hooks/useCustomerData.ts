@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchData } from "@/api/api-client";
-import { Customer } from "@/types";
+import { Customer, Booking } from "@/types";
 import { toast } from "sonner";
 
 export function useCustomerData(customerId: number) {
@@ -31,11 +31,11 @@ export function useCustomerBookings(customerId: number) {
   return useQuery({
     queryKey: ["customerBookings", customerId],
     queryFn: async () => {
-      const response = await fetchData(`/customers/${customerId}/bookings`);
+      const response = await fetchData<Booking[]>(`/customers/${customerId}/bookings`);
       if (response.error) {
         throw new Error(response.error);
       }
-      return response.data;
+      return response.data as Booking[];
     },
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
