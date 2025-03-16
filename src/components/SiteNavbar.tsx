@@ -1,11 +1,22 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Menu, X, User, Calendar, Heart, FileText, Star } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, User, Calendar, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 const SiteNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, logout, isAdmin, isStaff } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <nav className="bg-white shadow-sm fixed w-full z-10">
@@ -37,11 +48,49 @@ const SiteNavbar = () => {
             <Link to="/booking">
               <Button className="mr-2">Book Appointment</Button>
             </Link>
-            <Link to="/profile">
-              <Button variant="outline" size="icon">
-                <User className="h-4 w-4" />
+            
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  {isAdmin() && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      Admin Dashboard
+                    </DropdownMenuItem>
+                  )}
+                  
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                    {isStaff() ? "Staff Dashboard" : "My Dashboard"}
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
+                    Profile Settings
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/bookings")}>
+                    My Bookings
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="icon" onClick={() => navigate("/login")}>
+                <LogIn className="h-4 w-4" />
               </Button>
-            </Link>
+            )}
           </div>
           <div className="-mr-2 flex items-center sm:hidden">
             <button
@@ -76,9 +125,27 @@ const SiteNavbar = () => {
             <Link to="/booking" className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onClick={() => setIsMenuOpen(false)}>
               Book Appointment
             </Link>
-            <Link to="/profile" className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onClick={() => setIsMenuOpen(false)}>
-              Profile
-            </Link>
+            
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard" className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onClick={() => setIsMenuOpen(false)}>
+                  Dashboard
+                </Link>
+                <button
+                  className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium w-full text-left"
+                  onClick={() => {
+                    logout();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" onClick={() => setIsMenuOpen(false)}>
+                Log In
+              </Link>
+            )}
           </div>
         </div>
       )}
