@@ -24,7 +24,15 @@ import AdminDashboardLayout from "@/components/dashboard/AdminDashboardLayout";
 import AdminDashboardOverview from "@/pages/admin/AdminDashboardOverview";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => {
   return (

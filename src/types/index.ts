@@ -17,9 +17,12 @@ export interface Customer {
   phoneNumber: string;
   address?: string;
   birthDate?: string;
+  dateOfBirth?: string; // Added to fix type errors
   skinType?: string;
   skinConcerns?: string;
+  concerns?: string[]; // Added to fix type errors
   allergies?: string;
+  additionalNotes?: string; // Added to fix type errors
   createdAt: string;
   updatedAt: string;
 }
@@ -37,7 +40,10 @@ export interface Therapist {
   bio: string;
   rating: number;
   availability: string[];
-  imageUrl?: string;
+  serviceIds?: number[]; // Added to fix type errors
+  photoUrl?: string; // Added to fix type errors
+  imageUrl?: string; 
+  workSchedule?: string; // Added to fix type errors
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +54,7 @@ export interface Service {
   name: string;
   description: string;
   duration: number;
+  durationMinutes?: number; // Added to fix type errors
   price: number;
   category: string;
   imageUrl?: string;
@@ -91,9 +98,11 @@ export interface Feedback {
 export interface SkinTest {
   skinType: string;
   concerns: string[];
+  skinConcerns?: string; // Added to fix type errors
   sensitivity: string;
   allergies?: string;
   previousTreatments?: string;
+  additionalNotes?: string; // Added to fix type errors
 }
 
 // Home Page Data
@@ -107,7 +116,15 @@ export interface HomePageData {
   }[];
   featuredServices: Service[];
   topTherapists: Therapist[];
+  therapists?: Therapist[]; // Added to fix type errors
+  services?: Service[]; // Added to fix type errors
   testimonials: Feedback[];
+  blogs?: any[]; // Added to fix type errors
+  introduction?: { // Added to fix type errors
+    title: string;
+    description: string;
+    imageUrl: string;
+  };
   statistics: {
     customersServed: number;
     servicesOffered: number;
@@ -161,6 +178,7 @@ export interface ProfileUpdateData {
   phoneNumber?: string;
   address?: string;
   birthDate?: string;
+  dateOfBirth?: string; // Added to fix type errors
   skinType?: string;
   skinConcerns?: string;
   allergies?: string;

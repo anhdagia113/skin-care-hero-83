@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +14,7 @@ import {
   Menu, 
   X 
 } from "lucide-react";
+import Logo from "../ui/Logo";
 
 const UserDashboardLayout = () => {
   const { logout, userId } = useAuth();
@@ -36,7 +38,7 @@ const UserDashboardLayout = () => {
     <div className="min-h-screen bg-pink-50 flex flex-col md:flex-row">
       {/* Mobile header */}
       <div className="md:hidden bg-white p-4 flex items-center justify-between shadow-sm">
-        <Link to="/" className="text-xl font-semibold text-purple-600">SkinCare Center</Link>
+        <Logo variant="mobile" />
         <button
           onClick={toggleMobileMenu}
           className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
@@ -48,7 +50,7 @@ const UserDashboardLayout = () => {
       {/* Sidebar - Desktop */}
       <div className="hidden md:flex md:w-64 bg-white flex-shrink-0 flex-col shadow-sm">
         <div className="p-4 border-b border-gray-200">
-          <Link to="/" className="text-xl font-semibold text-purple-600">SkinCare Center</Link>
+          <Logo />
         </div>
         <div className="flex-grow p-4">
           <nav className="space-y-2">
@@ -84,7 +86,7 @@ const UserDashboardLayout = () => {
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-40 bg-white">
           <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <Link to="/" className="text-xl font-semibold text-purple-600">SkinCare Center</Link>
+            <Logo variant="mobile" />
             <button
               onClick={toggleMobileMenu}
               className="p-2 rounded-md text-gray-700 hover:bg-gray-100"

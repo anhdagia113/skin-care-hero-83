@@ -91,14 +91,26 @@
   }
 
   body {
-    @apply bg-background text-foreground font-light;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground font-montserrat;
     line-height: 1.6;
+    scroll-behavior: smooth;
   }
   
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-medium tracking-tight;
+  h1, h2, h3, h4 {
+    @apply font-playfair font-medium tracking-tight;
   }
+  
+  h5, h6 {
+    @apply font-montserrat font-medium tracking-tight;
+  }
+  
+  p {
+    @apply font-lato;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 /* Additional custom styles */
@@ -120,4 +132,41 @@
 
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500;
+}
+
+.scroll-to-top {
+  @apply fixed bottom-6 right-6 bg-primary/80 hover:bg-primary text-white rounded-full p-3 z-50 shadow-md transition-all duration-300 opacity-0 invisible;
+}
+
+.scroll-to-top.visible {
+  @apply opacity-100 visible;
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
