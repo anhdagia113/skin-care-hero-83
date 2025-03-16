@@ -37,14 +37,14 @@ export const ScrollToTop = () => {
   };
 
   return (
-    <>
-      <button 
-        className={`scroll-to-top ${showScrollTop ? 'visible' : ''}`}
-        onClick={scrollToTop}
-        aria-label="Scroll to top"
-      >
-        <ChevronUp size={24} />
-      </button>
-    </>
+    <button 
+      className={`scroll-to-top ${showScrollTop ? 'visible' : ''}`}
+      onClick={scrollToTop}
+      aria-label="Scroll to top"
+    >
+      <ChevronUp size={24} />
+    </button>
   );
 };
+
+export default ScrollToTop;

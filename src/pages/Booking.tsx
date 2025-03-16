@@ -1,421 +1,333 @@
 
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { useServicesData } from "@/hooks/useServicesData";
-import { useTherapistsData } from "@/hooks/useTherapistsData";
-import { useCreateBooking } from "@/hooks/useBooking";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
-import { CalendarIcon, Clock } from "lucide-react";
-import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useServicesData } from '@/hooks/useServicesData';
+import { useTherapistsData } from '@/hooks/useTherapistsData';
+import { Service, Therapist, Booking } from '@/types';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { createBooking } from '@/api/api-client';
 
-const Booking = () => {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const preselectedServiceId = searchParams.get("serviceId");
-  const preselectedTherapistId = searchParams.get("therapistId");
-
-  const [bookingData, setBookingData] = useState({
-    customerId: 1, // This would normally come from the authenticated user
-    serviceId: preselectedServiceId ? Number(preselectedServiceId) : 0,
-    therapistId: preselectedTherapistId ? Number(preselectedTherapistId) : undefined,
-    appointmentDate: new Date(),
-    appointmentTime: "10:00",
-    notes: ""
-  });
-
-  const [currentStep, setCurrentStep] = useState(1);
-  const [bookingComplete, setBookingComplete] = useState(false);
-  const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
-
-  const { data: services, isLoading: servicesLoading } = useServicesData();
-  const { data: therapists, isLoading: therapistsLoading } = useTherapistsData();
-  const createBooking = useCreateBooking();
-
-  const [filteredTherapists, setFilteredTherapists] = useState(therapists || []);
-
-  // Filter therapists based on selected service
-  useEffect(() => {
-    if (therapists && bookingData.serviceId) {
-      const filtered = therapists.filter(therapist => 
-        therapist.serviceIds.includes(bookingData.serviceId)
-      );
-      setFilteredTherapists(filtered);
-    } else {
-      setFilteredTherapists(therapists || []);
-    }
-  }, [therapists, bookingData.serviceId]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setBookingData(prev => ({ ...prev, [name]: value }));
+const BookingPage = () => {
+  const navigate = useNavigate();
+  const { data: services, isLoading: isServicesLoading } = useServicesData();
+  const { data: therapists, isLoading: isTherapistsLoading } = useTherapistsData();
+  
+  const [step, setStep] = useState(1);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
+  
+  const handleServiceSelect = (service: Service) => {
+    setSelectedService(service);
+    setStep(2);
   };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setBookingData(prev => ({ ...prev, [name]: value }));
+  
+  const handleTherapistSelect = (therapist: Therapist) => {
+    setSelectedTherapist(therapist);
+    setStep(3);
   };
-
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setBookingData(prev => ({ ...prev, appointmentDate: date }));
-    }
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedTimeSlot(null); // Reset time slot when date changes
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+  
+  const handleTimeSlotSelect = (timeSlot: string) => {
+    setSelectedTimeSlot(timeSlot);
+  };
+  
+  const handleSubmitBooking = async () => {
+    if (!selectedService || !selectedTherapist || !selectedDate || !selectedTimeSlot) {
+      toast.error('Please complete all booking details');
       return;
     }
-
+    
     try {
-      // Format the datetime for the API
-      const appointmentTime = new Date(bookingData.appointmentDate);
-      const [hours, minutes] = bookingData.appointmentTime.split(':').map(Number);
-      appointmentTime.setHours(hours, minutes);
-
-      const submissionData = {
-        customerId: bookingData.customerId,
-        serviceId: bookingData.serviceId,
-        therapistId: bookingData.therapistId,
-        appointmentTime: appointmentTime.toISOString(),
+      // Format appointment date and time
+      const appointmentDateTime = `${format(selectedDate, 'yyyy-MM-dd')}T${selectedTimeSlot}:00`;
+      
+      // Create booking object
+      const bookingData = {
+        customerId: 1, // This would normally come from auth context
+        serviceId: selectedService.id,
+        therapistId: selectedTherapist.id,
+        appointmentTime: appointmentDateTime,
+        duration: selectedService.duration || 60, // Use service duration or default to 60
         status: "BOOKED" as const,
-        amount: services?.find(s => s.id === bookingData.serviceId)?.price || 0,
-        isPaid: false
+        amount: selectedService.price,
+        isPaid: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
-
-      const result = await createBooking.mutateAsync(submissionData);
-      setBookingConfirmation(result);
-      setBookingComplete(true);
-      toast.success("Your booking has been confirmed!");
+      
+      // Call API to create booking
+      const response = await createBooking(bookingData);
+      
+      if (response.data) {
+        toast.success('Booking confirmed! Thank you for choosing us.');
+        navigate('/dashboard/bookings');
+      } else {
+        toast.error(response.error || 'Failed to create booking');
+      }
     } catch (error) {
-      toast.error("Failed to create booking. Please try again.");
+      console.error('Booking error:', error);
+      toast.error('An error occurred while booking');
     }
   };
-
-  const isLoading = servicesLoading || therapistsLoading || createBooking.isPending;
-
-  if (isLoading && currentStep === 1) {
+  
+  const timeSlots = [
+    '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'
+  ];
+  
+  const renderServiceSelection = () => {
+    if (isServicesLoading) return <div className="text-center py-10">Loading services...</div>;
+    
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading booking information...</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {services?.map((service) => (
+          <Card key={service.id} className="card-hover">
+            <CardHeader>
+              <CardTitle>{service.name}</CardTitle>
+              <CardDescription>{service.category}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">{service.description}</p>
+              <div className="flex justify-between text-sm">
+                <span>{service.duration || 60} minutes</span>
+                <span className="font-medium">${service.price}</span>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                className="w-full" 
+                onClick={() => handleServiceSelect(service)}
+              >
+                Select
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+  
+  const renderTherapistSelection = () => {
+    if (isTherapistsLoading) return <div className="text-center py-10">Loading specialists...</div>;
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {therapists?.map((therapist) => (
+          <Card key={therapist.id} className="card-hover">
+            <CardHeader>
+              <CardTitle>{therapist.firstName} {therapist.lastName}</CardTitle>
+              <CardDescription>{therapist.specialization}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2 text-sm">{therapist.bio.substring(0, 100)}...</p>
+              <div className="flex items-center mt-4">
+                <span className="text-sm">Experience: {therapist.experience} years</span>
+                <span className="ml-auto text-yellow-500">★ {therapist.rating}</span>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                className="w-full" 
+                onClick={() => handleTherapistSelect(therapist)}
+              >
+                Select
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+  
+  const renderDateTimeSelection = () => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Date</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleDateSelect}
+              className="rounded-md border"
+              disabled={(date) => {
+                // Disable dates in the past
+                return date < new Date(new Date().setHours(0, 0, 0, 0));
+              }}
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selectedDate ? (
+              <div className="grid grid-cols-3 gap-3">
+                {timeSlots.map((time) => (
+                  <Button
+                    key={time}
+                    variant={selectedTimeSlot === time ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => handleTimeSlotSelect(time)}
+                  >
+                    {time}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Please select a date first</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+  
+  const renderBookingSummary = () => {
+    if (!selectedService || !selectedTherapist || !selectedDate || !selectedTimeSlot) {
+      return null;
+    }
+    
+    return (
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Booking Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-between">
+            <span className="font-medium">Service:</span>
+            <span>{selectedService.name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Specialist:</span>
+            <span>{selectedTherapist.firstName} {selectedTherapist.lastName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Date:</span>
+            <span>{format(selectedDate, 'MMMM d, yyyy')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Time:</span>
+            <span>{selectedTimeSlot}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Duration:</span>
+            <span>{selectedService.duration || 60} minutes</span>
+          </div>
+          <Separator />
+          <div className="flex justify-between font-medium">
+            <span>Total:</span>
+            <span>${selectedService.price}</span>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            className="w-full" 
+            onClick={handleSubmitBooking}
+          >
+            Confirm Booking
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  };
+  
+  const renderStepIndicator = () => {
+    return (
+      <div className="flex justify-center mb-8">
+        <div className="flex items-center">
+          <div className={`rounded-full h-10 w-10 flex items-center justify-center 
+            ${step >= 1 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
+            1
+          </div>
+          <div className={`h-1 w-10 ${step >= 2 ? 'bg-primary' : 'bg-gray-200'}`} />
+          <div className={`rounded-full h-10 w-10 flex items-center justify-center 
+            ${step >= 2 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
+            2
+          </div>
+          <div className={`h-1 w-10 ${step >= 3 ? 'bg-primary' : 'bg-gray-200'}`} />
+          <div className={`rounded-full h-10 w-10 flex items-center justify-center 
+            ${step >= 3 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
+            3
+          </div>
         </div>
       </div>
     );
-  }
-
-  const selectedService = services?.find(service => service.id === Number(bookingData.serviceId));
-  const selectedTherapist = therapists?.find(therapist => therapist.id === Number(bookingData.therapistId));
-
+  };
+  
+  // Navigation buttons
+  const renderNavButtons = () => {
+    return (
+      <div className="flex justify-between mt-8">
+        {step > 1 && (
+          <Button 
+            variant="outline" 
+            onClick={() => setStep(step - 1)}
+          >
+            Back
+          </Button>
+        )}
+        <div></div> {/* Spacer */}
+        {step === 3 && selectedDate && selectedTimeSlot && (
+          <Button onClick={handleSubmitBooking}>
+            Confirm Booking
+          </Button>
+        )}
+      </div>
+    );
+  };
+  
   return (
-    <div className="pt-16">
-      <section className="bg-gradient-to-r from-purple-100 to-pink-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Book an Appointment</h1>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Schedule your skincare treatment with our expert specialists.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          {!bookingComplete ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {currentStep === 1 && "Select Service"}
-                  {currentStep === 2 && "Choose Specialist & Time"}
-                  {currentStep === 3 && "Confirm Your Booking"}
-                </CardTitle>
-                <CardDescription>
-                  Step {currentStep} of 3
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {currentStep === 1 && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="serviceId">Service</Label>
-                        <Select 
-                          onValueChange={(value) => handleSelectChange("serviceId", value)}
-                          value={bookingData.serviceId.toString()}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a service" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {services?.map(service => (
-                              <SelectItem key={service.id} value={service.id.toString()}>
-                                {service.name} - ${service.price} ({service.durationMinutes} min)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {selectedService && (
-                        <Card className="bg-gray-50">
-                          <CardHeader>
-                            <CardTitle className="text-lg">{selectedService.name}</CardTitle>
-                            <CardDescription>${selectedService.price} | {selectedService.durationMinutes} minutes</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-sm text-gray-600">{selectedService.description}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  )}
-
-                  {currentStep === 2 && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="therapistId">Specialist (Optional)</Label>
-                        <Select 
-                          onValueChange={(value) => handleSelectChange("therapistId", value)}
-                          value={bookingData.therapistId?.toString() || ""}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a specialist (optional)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">No preference</SelectItem>
-                            {filteredTherapists.map(therapist => (
-                              <SelectItem key={therapist.id} value={therapist.id.toString()}>
-                                {therapist.firstName} {therapist.lastName} - {therapist.specialization}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="appointmentDate">Date</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full justify-start text-left font-normal mt-1",
-                                  !bookingData.appointmentDate && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {bookingData.appointmentDate ? format(bookingData.appointmentDate, "PPP") : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={bookingData.appointmentDate}
-                                onSelect={handleDateChange}
-                                initialFocus
-                                disabled={(date) => date < new Date()}
-                                className={cn("p-3 pointer-events-auto")}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="appointmentTime">Time</Label>
-                          <Select 
-                            onValueChange={(value) => handleSelectChange("appointmentTime", value)}
-                            value={bookingData.appointmentTime}
-                            required
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue placeholder="Select a time" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="09:00">9:00 AM</SelectItem>
-                              <SelectItem value="10:00">10:00 AM</SelectItem>
-                              <SelectItem value="11:00">11:00 AM</SelectItem>
-                              <SelectItem value="12:00">12:00 PM</SelectItem>
-                              <SelectItem value="13:00">1:00 PM</SelectItem>
-                              <SelectItem value="14:00">2:00 PM</SelectItem>
-                              <SelectItem value="15:00">3:00 PM</SelectItem>
-                              <SelectItem value="16:00">4:00 PM</SelectItem>
-                              <SelectItem value="17:00">5:00 PM</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="notes">Special Requests or Notes</Label>
-                        <Textarea
-                          id="notes"
-                          name="notes"
-                          placeholder="Any special requests or information we should know"
-                          value={bookingData.notes}
-                          onChange={handleInputChange}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {currentStep === 3 && (
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium">Booking Summary</h3>
-                      
-                      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-gray-500">Service:</p>
-                            <p className="font-medium">{selectedService?.name}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Price:</p>
-                            <p className="font-medium">${selectedService?.price}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Date:</p>
-                            <p className="font-medium">{format(bookingData.appointmentDate, "PPP")}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Time:</p>
-                            <p className="font-medium">{format(new Date(`2000-01-01T${bookingData.appointmentTime}`), "h:mm a")}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Duration:</p>
-                            <p className="font-medium">{selectedService?.durationMinutes} minutes</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Specialist:</p>
-                            <p className="font-medium">
-                              {selectedTherapist 
-                                ? `${selectedTherapist.firstName} ${selectedTherapist.lastName}`
-                                : "No preference (will be assigned)"}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {bookingData.notes && (
-                          <div>
-                            <p className="text-sm text-gray-500">Notes:</p>
-                            <p className="text-sm">{bookingData.notes}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="text-sm text-gray-500">
-                        <p>Payment will be collected at the center after your service.</p>
-                        <p>If you need to cancel, please do so at least 24 hours in advance.</p>
-                      </div>
-                    </div>
-                  )}
-                </form>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                {currentStep > 1 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(currentStep - 1)}
-                  >
-                    Back
-                  </Button>
-                ) : (
-                  <div></div>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={createBooking.isPending || (currentStep === 1 && !bookingData.serviceId)}
-                >
-                  {createBooking.isPending ? "Processing..." : currentStep < 3 ? "Continue" : "Confirm Booking"}
-                </Button>
-              </CardFooter>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="text-center">
-                <div className="mx-auto bg-green-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <CardTitle className="text-2xl text-green-700">Booking Confirmed!</CardTitle>
-                <CardDescription>
-                  Your appointment has been successfully scheduled.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <div className="bg-gray-50 p-6 rounded-lg mb-6">
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-500">Booking Reference:</p>
-                    <p className="text-xl font-bold">{bookingConfirmation?.id || "N/A"}</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                    <div>
-                      <p className="text-sm text-gray-500">Service:</p>
-                      <p className="font-medium">{selectedService?.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Date & Time:</p>
-                      <p className="font-medium">{format(bookingData.appointmentDate, "PPP")} at {format(new Date(`2000-01-01T${bookingData.appointmentTime}`), "h:mm a")}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Specialist:</p>
-                      <p className="font-medium">
-                        {selectedTherapist 
-                          ? `${selectedTherapist.firstName} ${selectedTherapist.lastName}`
-                          : "To be assigned"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Duration:</p>
-                      <p className="font-medium">{selectedService?.durationMinutes} minutes</p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  A confirmation email has been sent with your booking details.
-                  Please arrive 10 minutes before your appointment time.
-                </p>
-                <div className="text-sm text-gray-500 mb-6">
-                  <p>If you need to cancel, please do so at least 24 hours in advance.</p>
-                  <p>Payment will be collected at the center after your service.</p>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-center">
-                <Button variant="outline" onClick={() => window.location.href = "/"}>
-                  Return to Home
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </div>
-      </section>
+    <div className="container-custom section-padding">
+      <h1 className="text-4xl text-center mb-2">Book Your Appointment</h1>
+      <p className="text-center text-muted-foreground mb-8">
+        Select from our range of services and specialists to book your perfect treatment
+      </p>
+      
+      {renderStepIndicator()}
+      
+      <div className="my-8">
+        {step === 1 && (
+          <>
+            <h2 className="text-2xl mb-6">Select a Service</h2>
+            {renderServiceSelection()}
+          </>
+        )}
+        
+        {step === 2 && (
+          <>
+            <h2 className="text-2xl mb-6">Choose Your Specialist</h2>
+            {renderTherapistSelection()}
+          </>
+        )}
+        
+        {step === 3 && (
+          <>
+            <h2 className="text-2xl mb-6">Choose Date & Time</h2>
+            {renderDateTimeSelection()}
+            {renderBookingSummary()}
+          </>
+        )}
+      </div>
+      
+      {renderNavButtons()}
     </div>
   );
 };
 
-export default Booking;
+export default BookingPage;

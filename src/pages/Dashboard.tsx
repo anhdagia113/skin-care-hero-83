@@ -1,568 +1,306 @@
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Calendar,
-  Users,
-  CreditCard,
-  Activity,
-  User,
-  FileText,
-  ShoppingBag,
-  Star
-} from "lucide-react";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { useCustomerBookings } from "@/hooks/useCustomerData";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { SectionHeader } from "@/components/ui/section-header";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Booking } from "@/types";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from '@/components/ui/chart';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { format } from 'date-fns';
+import { Sparkles, Calendar, Clock, CheckCircle, XCircle, DollarSign, Users, TrendingUp } from 'lucide-react';
 
-const Dashboard = () => {
-  const [userId, setUserId] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const navigate = useNavigate();
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description?: string;
+  icon: React.ReactNode;
+  trend?: number;
+  color?: string;
+}
 
-  // Fetch data from localStorage on component mount
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    
-    try {
-      // In a real app, you would decode the JWT token to get user info
-      // For now, we'll use a simple simulation
-      const userInfo = { id: 1, roles: ["USER"] };
-      setUserId(userInfo.id);
-      setIsAdmin(userInfo.roles.includes("ADMIN"));
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      navigate("/login");
-    }
-  }, [navigate]);
+const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, trend, color = 'bg-primary/10' }) => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <div className={`p-2 rounded-full ${color}`}>{icon}</div>
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{value}</div>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      {trend !== undefined && (
+        <div className={`flex items-center text-xs mt-1 ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% from last month
+        </div>
+      )}
+    </CardContent>
+  </Card>
+);
 
-  if (!userId) {
-    return (
-      <div className="container-custom py-12">
-        <LoadingSpinner text="Loading user data..." />
-      </div>
-    );
-  }
-
-  return (
-    <div className="container-custom py-12">
-      <SectionHeader 
-        title="Dashboard" 
-        subtitle={isAdmin ? "Admin Dashboard - Manage your business" : "Welcome to your dashboard"} 
-      />
-      
-      {isAdmin ? <AdminDashboard /> : <UserDashboard userId={userId} />}
-    </div>
-  );
-};
-
-const AdminDashboard = () => {
+const Dashboard: React.FC = () => {
   const { data, isLoading, error } = useDashboardData();
+  const [revenueView, setRevenueView] = useState<'weekly' | 'monthly'>('monthly');
   
   if (isLoading) {
-    return <LoadingSpinner text="Loading dashboard data..." />;
-  }
-  
-  if (error) {
     return (
-      <div className="text-center py-12 text-red-500">
-        <p className="text-lg">Failed to load dashboard data.</p>
-        <p className="text-sm mt-2">Please try again later.</p>
+      <div className="container-custom py-10">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
-
-  const summaryCards = [
-    { 
-      title: "Total Revenue", 
-      value: data ? `$${data.totalRevenue.toFixed(2)}` : "$0.00", 
-      description: "Monthly revenue", 
-      icon: <CreditCard className="h-8 w-8 text-pink-500" /> 
-    },
-    { 
-      title: "Total Bookings", 
-      value: data?.bookingsCount?.total || 0, 
-      description: "All time bookings", 
-      icon: <Calendar className="h-8 w-8 text-teal-500" /> 
-    },
-    { 
-      title: "Active Customers", 
-      value: 250, // This would come from the backend in a real app
-      description: "Repeat customers", 
-      icon: <Users className="h-8 w-8 text-indigo-500" /> 
-    },
-    { 
-      title: "Satisfaction Rate", 
-      value: "95%", // This would come from the backend in a real app
-      description: "Based on reviews", 
-      icon: <Activity className="h-8 w-8 text-amber-500" /> 
-    },
+  
+  if (error || !data) {
+    return (
+      <div className="container-custom py-10">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center h-64">
+            <h2 className="text-xl font-semibold text-red-500">Error Loading Dashboard</h2>
+            <p className="text-muted-foreground mt-2">
+              {error || 'Unable to load dashboard data. Please try again later.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Format data for charts
+  const revenueData = data.monthlyRevenue.map(item => ({
+    name: item.month,
+    revenue: item.revenue,
+  }));
+  
+  const bookingStatusData = [
+    { name: 'Booked', value: data.bookingsCount.booked },
+    { name: 'Completed', value: data.bookingsCount.completed },
+    { name: 'Cancelled', value: data.bookingsCount.cancelled },
   ];
-
+  
+  const serviceRevenueData = data.revenueByService.map(item => ({
+    name: item.serviceName.length > 15 ? `${item.serviceName.substring(0, 15)}...` : item.serviceName,
+    revenue: item.revenue,
+  }));
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+  
   return (
-    <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid grid-cols-4 mb-8">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="bookings">Bookings</TabsTrigger>
-        <TabsTrigger value="customers">Customers</TabsTrigger>
-        <TabsTrigger value="reports">Reports</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="overview" className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {summaryCards.map((card, index) => (
-            <Card key={index} className="border-none shadow-md hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg font-medium text-gray-600">{card.title}</CardTitle>
-                  {card.icon}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{card.value}</div>
-                <p className="text-sm text-gray-500">{card.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+    <div className="container-custom py-10">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="text-sm text-muted-foreground">
+          {format(new Date(), 'MMMM d, yyyy')}
         </div>
+      </div>
+      
+      {/* Stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard 
+          title="Total Revenue" 
+          value={formatCurrency(data.totalRevenue)}
+          icon={<DollarSign className="h-4 w-4 text-primary" />}
+          trend={8.2}
+        />
+        <StatCard 
+          title="Bookings" 
+          value={data.bookingsCount.total}
+          description={`${data.bookingsCount.booked} upcoming`}
+          icon={<Calendar className="h-4 w-4 text-indigo-500" />}
+          color="bg-indigo-100"
+          trend={12.5}
+        />
+        <StatCard 
+          title="Completion Rate" 
+          value={`${Math.round((data.bookingsCount.completed / (data.bookingsCount.total - data.bookingsCount.booked)) * 100)}%`}
+          icon={<CheckCircle className="h-4 w-4 text-green-500" />}
+          color="bg-green-100"
+          trend={1.8}
+        />
+        <StatCard 
+          title="Average Service" 
+          value={formatCurrency(data.totalRevenue / data.bookingsCount.completed)}
+          icon={<Sparkles className="h-4 w-4 text-purple-500" />}
+          color="bg-purple-100"
+          trend={-2.3}
+        />
+      </div>
+      
+      {/* Revenue Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Revenue Overview</CardTitle>
+              <Tabs defaultValue="monthly" onValueChange={(v) => setRevenueView(v as 'weekly' | 'monthly')}>
+                <TabsList className="grid w-[200px] grid-cols-2">
+                  <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                  <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <CardDescription>
+              {revenueView === 'monthly' ? 'Monthly revenue for the past year' : 'Weekly revenue for the past quarter'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={revenueData}>
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#888888" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false} 
+                />
+                <YAxis
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip
+                  formatter={(value: any) => formatCurrency(value)}
+                  labelFormatter={(label) => `${label}`}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2} 
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Revenue by Service</CardTitle>
-            </CardHeader>
-            <CardContent className="h-80">
-              {data?.revenueByService && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.revenueByService}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="serviceName" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="revenue" fill="#ff7eb6" name="Revenue ($)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Top Specialists</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {data?.topTherapists && data.topTherapists.map((therapist, index) => (
-                <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center mr-3">
-                      <User className="h-5 w-5 text-pink-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{therapist.therapistName}</p>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Star className="h-3 w-3 text-yellow-500 mr-1" />
-                        {therapist.averageRating.toFixed(1)}
-                      </div>
-                    </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Booking Status</CardTitle>
+            <CardDescription>
+              Breakdown of current bookings by status
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={bookingStatusData} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  stroke="#888888" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false}
+                  width={80}
+                />
+                <Tooltip
+                  formatter={(value: any) => [`${value} bookings`, ""]}
+                  labelFormatter={(label) => `Status: ${label}`}
+                />
+                <Bar 
+                  dataKey="value" 
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                >
+                  {bookingStatusData.map((entry, index) => {
+                    const colors = ["hsl(var(--primary))", "#10b981", "#f43f5e"];
+                    return <rect key={`rect-${index}`} fill={colors[index % colors.length]} />;
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Service Revenue */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by Service</CardTitle>
+            <CardDescription>
+              Top services by revenue generation
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={serviceRevenueData}>
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#888888" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip
+                  formatter={(value: any) => formatCurrency(value)}
+                  labelFormatter={(label) => `Service: ${label}`}
+                />
+                <Bar 
+                  dataKey="revenue" 
+                  fill="hsl(var(--primary))" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        
+        {/* Recent Bookings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Bookings</CardTitle>
+            <CardDescription>
+              Latest booking activity in the system
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {data.recentBookings.slice(0, 5).map((booking) => (
+                <div key={booking.id} className="flex items-center border-b pb-2">
+                  <div className={`p-2 rounded-full mr-4 ${
+                    booking.status === "COMPLETED" ? "bg-green-100" : 
+                    booking.status === "CANCELLED" ? "bg-red-100" : "bg-blue-100"
+                  }`}>
+                    {booking.status === "COMPLETED" ? <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                     booking.status === "CANCELLED" ? <XCircle className="h-4 w-4 text-red-500" /> : 
+                     <Clock className="h-4 w-4 text-blue-500" />}
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">{therapist.bookingsCount}</p>
-                    <p className="text-sm text-gray-500">bookings</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Service #{booking.serviceId}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(booking.appointmentTime), 'MMM d, yyyy, h:mm a')}
+                    </p>
+                  </div>
+                  <div className="font-medium">
+                    {formatCurrency(booking.amount)}
                   </div>
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </div>
-        
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">Recent Bookings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b">
-                    <th className="pb-3 font-medium">ID</th>
-                    <th className="pb-3 font-medium">Customer</th>
-                    <th className="pb-3 font-medium">Service</th>
-                    <th className="pb-3 font-medium">Date</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data?.recentBookings && data.recentBookings.map((booking, index) => (
-                    <tr key={index} className="border-b last:border-b-0">
-                      <td className="py-3">{booking.id}</td>
-                      <td className="py-3">Customer #{booking.customerId}</td>
-                      <td className="py-3">Service #{booking.serviceId}</td>
-                      <td className="py-3">{new Date(booking.appointmentTime).toLocaleString()}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
-                          {booking.status}
-                        </span>
-                      </td>
-                      <td className="py-3">${booking.amount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </CardContent>
         </Card>
-      </TabsContent>
-      
-      <TabsContent value="bookings">
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold">Booking Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-6">Manage all your appointments and bookings here.</p>
-            <div className="flex justify-center items-center py-12">
-              <div className="flex flex-col items-center">
-                <FileText className="h-16 w-16 text-gray-300 mb-4" />
-                <p className="text-gray-500">Booking management interface will be implemented here.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="customers">
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold">Customer Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-6">View and manage your customer database.</p>
-            <div className="flex justify-center items-center py-12">
-              <div className="flex flex-col items-center">
-                <Users className="h-16 w-16 text-gray-300 mb-4" />
-                <p className="text-gray-500">Customer management interface will be implemented here.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="reports">
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold">Reports & Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-6">View detailed reports and analytics for your business.</p>
-            <div className="flex justify-center items-center py-12">
-              <div className="flex flex-col items-center">
-                <Activity className="h-16 w-16 text-gray-300 mb-4" />
-                <p className="text-gray-500">Reports and analytics interface will be implemented here.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
-  );
-};
-
-const UserDashboard = ({ userId }: { userId: number }) => {
-  const { data: bookings, isLoading, error } = useCustomerBookings(userId);
-  
-  if (isLoading) {
-    return <LoadingSpinner text="Loading your bookings..." />;
-  }
-  
-  if (error) {
-    return (
-      <div className="text-center py-12 text-red-500">
-        <p className="text-lg">Failed to load your data.</p>
-        <p className="text-sm mt-2">Please try again later.</p>
       </div>
-    );
-  }
-  
-  // Ensure bookings is an array before checking length
-  const bookingsArray = Array.isArray(bookings) ? bookings : [];
-
-  return (
-    <Tabs defaultValue="upcoming" className="w-full">
-      <TabsList className="grid grid-cols-3 mb-8">
-        <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
-        <TabsTrigger value="history">Booking History</TabsTrigger>
-        <TabsTrigger value="profile">My Profile</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="upcoming" className="space-y-8">
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">Your Upcoming Appointments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {bookingsArray.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="pb-3 font-medium">Service</th>
-                      <th className="pb-3 font-medium">Date & Time</th>
-                      <th className="pb-3 font-medium">Specialist</th>
-                      <th className="pb-3 font-medium">Status</th>
-                      <th className="pb-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookingsArray
-                      .filter((booking: Booking) => 
-                        new Date(booking.appointmentTime) >= new Date() && 
-                        booking.status !== 'CANCELLED' && 
-                        booking.status !== 'COMPLETED'
-                      )
-                      .map((booking: Booking, index: number) => (
-                        <tr key={index} className="border-b last:border-b-0">
-                          <td className="py-3">Service #{booking.serviceId}</td>
-                          <td className="py-3">{new Date(booking.appointmentTime).toLocaleString()}</td>
-                          <td className="py-3">{booking.therapistId ? `Specialist #${booking.therapistId}` : "Not assigned"}</td>
-                          <td className="py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td className="py-3">
-                            <button className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-full transition">
-                              Reschedule
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Calendar className="h-16 w-16 text-pink-200 mb-4" />
-                <p className="text-gray-500 mb-2">You don't have any upcoming appointments</p>
-                <button className="mt-4 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full transition">
-                  Book an Appointment
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Recommended Services</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center p-3 bg-pink-50 rounded-lg">
-                  <div className="w-12 h-12 rounded-full bg-pink-200 flex items-center justify-center mr-4">
-                    <ShoppingBag className="h-6 w-6 text-pink-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Facial Treatment</h4>
-                    <p className="text-sm text-gray-500">Based on your skin profile</p>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 bg-purple-50 rounded-lg">
-                  <div className="w-12 h-12 rounded-full bg-purple-200 flex items-center justify-center mr-4">
-                    <ShoppingBag className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Hydrating Treatment</h4>
-                    <p className="text-sm text-gray-500">Perfect for the current season</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Skin Care Tips</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-3 bg-teal-50 rounded-lg">
-                  <h4 className="font-medium text-teal-700 mb-1">Stay Hydrated</h4>
-                  <p className="text-sm text-gray-600">Drink at least 8 glasses of water daily for radiant skin.</p>
-                </div>
-                <div className="p-3 bg-teal-50 rounded-lg">
-                  <h4 className="font-medium text-teal-700 mb-1">Use Sunscreen</h4>
-                  <p className="text-sm text-gray-600">Always apply SPF 30+ sunscreen, even on cloudy days.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="history">
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">Your Booking History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {bookingsArray.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="pb-3 font-medium">Service</th>
-                      <th className="pb-3 font-medium">Date</th>
-                      <th className="pb-3 font-medium">Specialist</th>
-                      <th className="pb-3 font-medium">Status</th>
-                      <th className="pb-3 font-medium">Amount</th>
-                      <th className="pb-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookingsArray
-                      .filter((booking: Booking) => 
-                        booking.status === 'COMPLETED' || booking.status === 'CANCELLED'
-                      )
-                      .map((booking: Booking, index: number) => (
-                        <tr key={index} className="border-b last:border-b-0">
-                          <td className="py-3">Service #{booking.serviceId}</td>
-                          <td className="py-3">{new Date(booking.appointmentTime).toLocaleDateString()}</td>
-                          <td className="py-3">{booking.therapistId ? `Specialist #${booking.therapistId}` : "N/A"}</td>
-                          <td className="py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td className="py-3">${booking.amount}</td>
-                          <td className="py-3">
-                            {booking.status === 'COMPLETED' && (
-                              <button className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded-full transition">
-                                Leave Review
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-16 w-16 text-gray-200 mb-4" />
-                <p className="text-gray-500">No booking history yet</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="profile">
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">My Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="max-w-lg mx-auto">
-              <div className="flex items-center mb-8">
-                <div className="w-24 h-24 rounded-full bg-pink-200 flex items-center justify-center mr-6">
-                  <User className="h-12 w-12 text-pink-600" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-medium">Jane Doe</h3>
-                  <p className="text-gray-500">Member since January 2023</p>
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">PERSONAL INFORMATION</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Email</p>
-                      <p>jane.doe@example.com</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <p>(123) 456-7890</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Date of Birth</p>
-                      <p>January 15, 1990</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">SKIN PROFILE</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Skin Type</p>
-                      <p>Combination</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Concerns</p>
-                      <p>Dryness, Fine Lines</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Allergies</p>
-                      <p>None reported</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-center pt-6">
-                  <button className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full transition mr-4">
-                    Edit Profile
-                  </button>
-                  <button className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-full transition">
-                    Take Skin Test
-                  </button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+    </div>
   );
-};
-
-// Helper function to get the right color class for booking status
-const getStatusClass = (status: string) => {
-  switch (status) {
-    case 'BOOKED':
-      return 'bg-blue-100 text-blue-800';
-    case 'CHECKED_IN':
-      return 'bg-purple-100 text-purple-800';
-    case 'IN_PROGRESS':
-      return 'bg-amber-100 text-amber-800';
-    case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
 };
 
 export default Dashboard;

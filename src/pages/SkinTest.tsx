@@ -1,279 +1,249 @@
 
-import { useState } from "react";
-import { useSkinTest } from "@/hooks/useSkinTest";
-import { Service, SkinTest as SkinTestType } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { Link } from "react-router-dom";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Slider
-} from "@/components/ui/slider";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { SkinTest } from '@/types';
+import { submitSkinTest } from '@/api/api-client';
+import { toast } from 'sonner';
 
-const SkinTest = () => {
-  const [skinTestData, setSkinTestData] = useState<SkinTestType>({
-    skinType: "",
-    skinConcerns: "",
-    oiliness: 5,
-    sensitivity: 5,
-    hydration: 5,
-    pigmentation: 5,
-    wrinkles: 5,
-    additionalNotes: ""
+const skinTypes = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'dry', label: 'Dry' },
+  { value: 'oily', label: 'Oily' },
+  { value: 'combination', label: 'Combination' },
+  { value: 'sensitive', label: 'Sensitive' },
+];
+
+const sensitivityLevels = [
+  { value: 'low', label: 'Low - My skin rarely reacts to products' },
+  { value: 'medium', label: 'Medium - My skin occasionally gets irritated' },
+  { value: 'high', label: 'High - My skin often reacts to new products' },
+];
+
+const skinConcerns = [
+  { id: '1', label: 'Acne' },
+  { id: '2', label: 'Fine Lines & Wrinkles' },
+  { id: '3', label: 'Hyperpigmentation' },
+  { id: '4', label: 'Dullness' },
+  { id: '5', label: 'Uneven Texture' },
+  { id: '6', label: 'Redness' },
+  { id: '7', label: 'Enlarged Pores' },
+  { id: '8', label: 'Dryness' },
+];
+
+const SkinTestPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [skinTest, setSkinTest] = useState<SkinTest>({
+    skinType: '',
+    concerns: [],
+    sensitivity: '',
+    allergies: '',
+    previousTreatments: '',
   });
-  
-  const [recommendedServices, setRecommendedServices] = useState<Service[]>([]);
-  const [step, setStep] = useState(1);
-  
-  const skinTest = useSkinTest();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setSkinTestData(prev => ({ ...prev, [name]: value }));
+  const updateSkinTest = (field: keyof SkinTest, value: any) => {
+    setSkinTest(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setSkinTestData(prev => ({ ...prev, [name]: value }));
+  const handleConcernToggle = (id: string) => {
+    setSkinTest(prev => {
+      const concerns = [...prev.concerns];
+      if (concerns.includes(id)) {
+        return { ...prev, concerns: concerns.filter(c => c !== id) };
+      } else {
+        return { ...prev, concerns: [...concerns, id] };
+      }
+    });
   };
 
-  const handleSliderChange = (name: string, value: number[]) => {
-    setSkinTestData(prev => ({ ...prev, [name]: value[0] }));
-  };
+  const handleSubmit = async () => {
+    if (!skinTest.skinType || !skinTest.sensitivity || skinTest.concerns.length === 0) {
+      toast.error('Please complete all required fields');
+      return;
+    }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    setIsSubmitting(true);
     try {
-      const results = await skinTest.mutateAsync(skinTestData);
-      setRecommendedServices(results);
-      setStep(2);
-      toast.success("Skin test completed! Here are your recommendations.");
+      const response = await submitSkinTest(skinTest);
+      if (response.data) {
+        toast.success('Skin assessment completed! View your personalized recommendations.');
+        navigate('/services', { state: { skinTestResults: response.data } });
+      } else {
+        toast.error(response.error || 'Failed to submit skin assessment');
+      }
     } catch (error) {
-      toast.error("Failed to process skin test. Please try again.");
+      console.error('Error submitting skin test:', error);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="pt-16">
-      <section className="bg-gradient-to-r from-purple-100 to-pink-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Skin Assessment Test</h1>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Complete this assessment to receive personalized service recommendations based on your skin type and concerns.
-            </p>
-          </div>
-        </div>
-      </section>
+  const nextStep = () => {
+    if ((currentStep === 1 && !skinTest.skinType) || 
+        (currentStep === 2 && skinTest.concerns.length === 0) || 
+        (currentStep === 3 && !skinTest.sensitivity)) {
+      toast.error('Please answer the question to continue');
+      return;
+    }
+    setCurrentStep(prev => prev + 1);
+  };
 
-      <section className="py-16 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          {step === 1 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Skin Assessment Form</CardTitle>
-                <CardDescription>
-                  Please answer the following questions about your skin to help us understand your needs.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="skinType">Skin Type</Label>
-                      <Select 
-                        onValueChange={(value) => handleSelectChange("skinType", value)}
-                        value={skinTestData.skinType}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your skin type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="dry">Dry</SelectItem>
-                          <SelectItem value="oily">Oily</SelectItem>
-                          <SelectItem value="combination">Combination</SelectItem>
-                          <SelectItem value="sensitive">Sensitive</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+  const prevStep = () => {
+    setCurrentStep(prev => prev - 1);
+  };
 
-                    <div>
-                      <Label htmlFor="skinConcerns">Primary Skin Concerns</Label>
-                      <Textarea
-                        id="skinConcerns"
-                        name="skinConcerns"
-                        placeholder="e.g. acne, wrinkles, hyperpigmentation, etc."
-                        value={skinTestData.skinConcerns}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="oiliness">Oiliness (1-10)</Label>
-                      <div className="pt-5 pb-2">
-                        <Slider 
-                          defaultValue={[5]} 
-                          max={10} 
-                          step={1} 
-                          onValueChange={(value) => handleSliderChange("oiliness", value)}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>Very Dry</span>
-                        <span>Balanced</span>
-                        <span>Very Oily</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="sensitivity">Sensitivity (1-10)</Label>
-                      <div className="pt-5 pb-2">
-                        <Slider 
-                          defaultValue={[5]} 
-                          max={10} 
-                          step={1}
-                          onValueChange={(value) => handleSliderChange("sensitivity", value)}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>Not Sensitive</span>
-                        <span>Moderate</span>
-                        <span>Very Sensitive</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="hydration">Hydration (1-10)</Label>
-                      <div className="pt-5 pb-2">
-                        <Slider 
-                          defaultValue={[5]} 
-                          max={10} 
-                          step={1}
-                          onValueChange={(value) => handleSliderChange("hydration", value)}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>Dehydrated</span>
-                        <span>Adequate</span>
-                        <span>Very Hydrated</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="pigmentation">Pigmentation Issues (1-10)</Label>
-                      <div className="pt-5 pb-2">
-                        <Slider 
-                          defaultValue={[5]} 
-                          max={10} 
-                          step={1}
-                          onValueChange={(value) => handleSliderChange("pigmentation", value)}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>None</span>
-                        <span>Moderate</span>
-                        <span>Significant</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="wrinkles">Fine Lines & Wrinkles (1-10)</Label>
-                      <div className="pt-5 pb-2">
-                        <Slider 
-                          defaultValue={[5]} 
-                          max={10} 
-                          step={1}
-                          onValueChange={(value) => handleSliderChange("wrinkles", value)}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>None</span>
-                        <span>Moderate</span>
-                        <span>Significant</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="additionalNotes">Additional Notes</Label>
-                      <Textarea
-                        id="additionalNotes"
-                        name="additionalNotes"
-                        placeholder="Any other information about your skin you'd like to share"
-                        value={skinTestData.additionalNotes}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={skinTest.isPending}>
-                    {skinTest.isPending ? "Processing..." : "Submit Assessment"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Personalized Recommendations</CardTitle>
-                  <CardDescription>
-                    Based on your skin assessment, we recommend the following services:
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {recommendedServices.length > 0 ? (
-                    <div className="space-y-6">
-                      {recommendedServices.map((service) => (
-                        <Card key={service.id}>
-                          <CardHeader>
-                            <CardTitle className="text-xl">{service.name}</CardTitle>
-                            <CardDescription>${service.price} | {service.durationMinutes} minutes</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p>{service.description}</p>
-                          </CardContent>
-                          <CardFooter>
-                            <Link to={`/booking?serviceId=${service.id}`} className="w-full">
-                              <Button className="w-full">Book This Service</Button>
-                            </Link>
-                          </CardFooter>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">No specific recommendations found based on your assessment.</p>
-                      <Link to="/services">
-                        <Button variant="outline">Browse All Services</Button>
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" onClick={() => setStep(1)}>
-                    Retake Assessment
-                  </Button>
-                  <Link to="/booking">
-                    <Button>Book Appointment</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
+  const renderStep1 = () => (
+    <Card className="w-full max-w-3xl">
+      <CardHeader>
+        <CardTitle className="text-2xl">What is your skin type?</CardTitle>
+        <CardDescription>Select the option that best describes your skin's natural state</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <RadioGroup value={skinTest.skinType} onValueChange={value => updateSkinTest('skinType', value)}>
+          {skinTypes.map(type => (
+            <div key={type.value} className="flex items-center space-x-2 py-2">
+              <RadioGroupItem value={type.value} id={`skin-type-${type.value}`} />
+              <Label htmlFor={`skin-type-${type.value}`} className="cursor-pointer">{type.label}</Label>
             </div>
-          )}
+          ))}
+        </RadioGroup>
+      </CardContent>
+      <CardFooter className="flex justify-end">
+        <Button onClick={nextStep}>Next</Button>
+      </CardFooter>
+    </Card>
+  );
+
+  const renderStep2 = () => (
+    <Card className="w-full max-w-3xl">
+      <CardHeader>
+        <CardTitle className="text-2xl">What are your skin concerns?</CardTitle>
+        <CardDescription>Select all that apply to your skin</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {skinConcerns.map(concern => (
+            <div key={concern.id} className="flex items-center space-x-2">
+              <Checkbox 
+                id={`concern-${concern.id}`} 
+                checked={skinTest.concerns.includes(concern.id)}
+                onCheckedChange={() => handleConcernToggle(concern.id)}
+              />
+              <Label htmlFor={`concern-${concern.id}`} className="cursor-pointer">{concern.label}</Label>
+            </div>
+          ))}
         </div>
-      </section>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={prevStep}>Back</Button>
+        <Button onClick={nextStep}>Next</Button>
+      </CardFooter>
+    </Card>
+  );
+
+  const renderStep3 = () => (
+    <Card className="w-full max-w-3xl">
+      <CardHeader>
+        <CardTitle className="text-2xl">How sensitive is your skin?</CardTitle>
+        <CardDescription>This helps us recommend appropriate treatments</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <RadioGroup value={skinTest.sensitivity} onValueChange={value => updateSkinTest('sensitivity', value)}>
+          {sensitivityLevels.map(level => (
+            <div key={level.value} className="flex items-center space-x-2 py-2">
+              <RadioGroupItem value={level.value} id={`sensitivity-${level.value}`} />
+              <Label htmlFor={`sensitivity-${level.value}`} className="cursor-pointer">{level.label}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={prevStep}>Back</Button>
+        <Button onClick={nextStep}>Next</Button>
+      </CardFooter>
+    </Card>
+  );
+
+  const renderStep4 = () => (
+    <Card className="w-full max-w-3xl">
+      <CardHeader>
+        <CardTitle className="text-2xl">Additional Information</CardTitle>
+        <CardDescription>Please share any other relevant details about your skin</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <Label htmlFor="allergies" className="block mb-2">Do you have any allergies or known sensitivities to skincare ingredients?</Label>
+          <Textarea 
+            id="allergies" 
+            placeholder="E.g., Fragrances, essential oils, specific ingredients..." 
+            value={skinTest.allergies}
+            onChange={e => updateSkinTest('allergies', e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <div>
+          <Label htmlFor="previous-treatments" className="block mb-2">Have you had any previous facial treatments? If so, please describe.</Label>
+          <Textarea 
+            id="previous-treatments" 
+            placeholder="E.g., Chemical peels, microdermabrasion, etc." 
+            value={skinTest.previousTreatments}
+            onChange={e => updateSkinTest('previousTreatments', e.target.value)}
+            className="w-full"
+          />
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={prevStep}>Back</Button>
+        <Button onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : 'Complete Assessment'}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+
+  const renderProgressBar = () => {
+    const progress = (currentStep / 4) * 100;
+    return (
+      <div className="w-full max-w-3xl mb-6">
+        <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div 
+            className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-sm text-gray-500 mt-2">
+          <span>Skin Type</span>
+          <span>Concerns</span>
+          <span>Sensitivity</span>
+          <span>Details</span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="container-custom section-padding flex flex-col items-center">
+      <h1 className="text-4xl text-center mb-2">Skin Assessment</h1>
+      <p className="text-center text-muted-foreground mb-8 max-w-2xl">
+        Complete this assessment to receive personalized skincare recommendations and treatment suggestions
+      </p>
+      
+      {renderProgressBar()}
+      
+      {currentStep === 1 && renderStep1()}
+      {currentStep === 2 && renderStep2()}
+      {currentStep === 3 && renderStep3()}
+      {currentStep === 4 && renderStep4()}
     </div>
   );
 };
 
-export default SkinTest;
+export default SkinTestPage;
