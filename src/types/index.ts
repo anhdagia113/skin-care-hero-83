@@ -135,6 +135,7 @@ export interface HomePageData {
 
 // Dashboard Data
 export interface DashboardData {
+  // Original properties
   totalRevenue: number;
   bookingsCount: {
     total: number;
@@ -159,6 +160,38 @@ export interface DashboardData {
     month: string;
     revenue: number;
   }[];
+  
+  // Adding missing properties used in Dashboard.tsx
+  upcomingBookings?: {
+    id: number;
+    serviceId: number;
+    serviceName: string;
+    appointmentTime: string;
+    therapistName: string;
+    status: string;
+  }[];
+  recentTransactions?: {
+    id: number;
+    amount: number;
+    date: string;
+    description: string;
+    type: 'payment' | 'refund';
+  }[];
+  stats?: {
+    totalBookings: number;
+    newBookings: number;
+    completedTreatments: number;
+    completionRate: number;
+    loyaltyPoints: number;
+    pointsToNextReward: number;
+    totalSpent: number;
+    totalServices: number;
+  };
+  charts?: {
+    treatmentHistory: { name: string; value: number }[];
+    treatmentTypes: { name: string; value: number }[];
+    monthlySpending: { name: string; value: number }[];
+  };
 }
 
 // Form Types

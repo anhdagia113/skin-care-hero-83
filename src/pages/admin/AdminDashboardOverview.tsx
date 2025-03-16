@@ -81,7 +81,6 @@ const AdminDashboardOverview = () => {
     );
   }
 
-  // Format data for charts
   const revenueByService = dashboardData.revenueByService.map(item => ({
     name: item.serviceName,
     value: item.revenue
@@ -92,6 +91,15 @@ const AdminDashboardOverview = () => {
     bookings: item.bookingsCount,
     rating: item.averageRating
   }));
+
+  const monthlyRevenueData = [
+    { name: "Jan", month: "Jan", revenue: 4200 },
+    { name: "Feb", month: "Feb", revenue: 4800 },
+    { name: "Mar", month: "Mar", revenue: 5100 },
+    { name: "Apr", month: "Apr", revenue: 5600 },
+    { name: "May", month: "May", revenue: 5900 },
+    { name: "Jun", month: "Jun", revenue: 6100 },
+  ];
 
   return (
     <div className="space-y-6">
@@ -289,15 +297,8 @@ const AdminDashboardOverview = () => {
             </CardHeader>
             <CardContent>
               <LineChart
-                data={[
-                  { month: "Jan", revenue: 4200 },
-                  { month: "Feb", revenue: 4800 },
-                  { month: "Mar", revenue: 5100 },
-                  { month: "Apr", revenue: 5600 },
-                  { month: "May", revenue: 5900 },
-                  { month: "Jun", revenue: 6100 },
-                ]}
-                index="month"
+                data={monthlyRevenueData}
+                index="name"
                 categories={["revenue"]}
                 colors={["purple"]}
                 valueFormatter={(value) => `$${value}`}
